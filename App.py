@@ -92,7 +92,7 @@ st.markdown("""
 
 # --- App Header ---
 st.title("🏀 AlphaProp Edge Finder+")
-st.markdown("Multi-Book Alt Engine, Live Line Sync, Category Filters, Sorted Odds, and Performance Ledgers.")
+st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Suggested Picks Ledger.")
 
 # --- Sidebar Controls & Book Selector Button Group ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -133,9 +133,6 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
     elif stat_type == 'Assists':
         rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
         base_juices = [-490, -240, base_odds, +145, +330, +720]
-    elif stat_type == '3PT Made':
-        rungs = [-2.0, -1.0, 0.0, +1.0, +2.0, +3.0, +4.0]
-        base_juices = [-480, -240, base_odds, +130, +280, +590, +1250]
     else: 
         rungs = [-8.0, -4.0, 0.0, +5.0, +10.0, +15.0]
         base_juices = [-510, -255, base_odds, +130, +275, +590]
@@ -151,7 +148,7 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
         
     return alt_market
 
-# --- Accurate Slate Feed with Core Categories ---
+# --- Accurate Slate Feed with Corrected Lines & Injury Statuses ---
 @st.cache_data
 def load_local_engine_slate(book_name):
     variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
@@ -162,11 +159,11 @@ def load_local_engine_slate(book_name):
         'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Jalen Brunson', 'Franz Wagner', 'Tyrese Maxey', 'Trae Young', 'Luka Dončić', 'Giannis Antetokounmpo', 'Jayson Tatum', 'Victor Wembanyama'],
         'team': ['OKC', 'CHA', 'NYK', 'ORL', 'PHI', 'IND', 'DAL', 'MIN', 'HOU', 'SAS'],
         'opponent': ['CLE', 'DET', 'BRK', 'WAS', 'PHI', 'IND', 'SAC', 'MIL', 'HOU', 'UTA'],
-        'stat_type': ['Points', '3PT Made', 'Points', 'Rebounds', 'Points', 'Assists', 'Points', 'PRA', '3PT Made', 'Rebounds'],
-        'live_line': [30.5, 3.5, 25.5, 6.5, 29.5, 9.5, 28.5, 45.5, 3.5, 11.5],
-        'book_odds': [-110 + v, -115 + v, -110 + v, -110 + v, -115 + v, -110 + v, -115 + v, -115 + v, -110 + v, -105 + v],
-        'true_probability': [0.730, 0.710, 0.710, 0.740, 0.700, 0.750, 0.710, 0.720, 0.750, 0.720],
-        'absence_reason': ['none', 'none', 'none', 'none', 'none', 'none', 'rest', 'none', 'none', 'none']
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Points', 'Assists', 'Points', 'PRA', 'Points', 'Points'],
+        'live_line': [30.5, 12.5, 25.5, 19.5, 29.5, 9.5, 28.5, 45.5, 28.5, 24.5],
+        'book_odds': [-110 + v, -132 + v, -110 + v, -110 + v, -115 + v, -110 + v, -115 + v, -115 + v, -110 + v, -115 + v],
+        'true_probability': [0.730, 0.680, 0.710, 0.740, 0.700, 0.750, 0.710, 0.720, 0.690, 0.740],
+        'absence_reason': ['none', 'season_debut_mins_limit', 'none', 'none', 'none', 'none', 'rest', 'none', 'none', 'none']
     })
     
     df['alt_options'] = [
@@ -241,40 +238,8 @@ def load_historical_suggested_picks():
         'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01'],
         'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo'],
         'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL'],
-        'stat_type': ['Points', '3PT Made', 'Points', 'Points', 'Rebounds', '3PT Made', 'PRA'],
-        'recommended_prop': ['Over 30.5', 'Over 3.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 3.5', 'Over 45.5'],
-        'book_odds': [-110, -115, -115, -110, -105, -110, -115],
-        'model_prob': ['73.0%', '71.0%', '71.0%', '70.0%', '72.0%', '75.0%', '72.0%'],
-        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON'],
-        'units_pnl': [0.91, 0.87, 0.87, -1.00, 0.95, 0.91, 0.87]
-    })
-    picks_df['date'] = pd.to_datetime(picks_df['date']).dt.date
-    return picks_df
-
-@st.cache_data
-def load_parlay_performance_ledger():
-    ledger_df = pd.DataFrame({
-        'date': ['2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31'],
-        'model_strategy': [
-            '🛡️ High-Floor Misprice SGP (2-Leg)', 
-            '⚡ v7 EV Accumulator (+580)', 
-            '🛡️ High-Floor Misprice SGP (2-Leg)', 
-            '🚀 Moonshot Ceiling (+2200)', 
-            '⚡ v7 EV Accumulator (+620)', 
-            '🛡️ High-Floor Misprice SGP (2-Leg)', 
-            '🚀 Moonshot Ceiling (+2450)'
-        ],
-        'legs_summary': [
-            'Sabonis 11.5+ Reb / Haliburton 9.5+ Ast',
-            'Adebayo Under 10.5 Reb / Dončić 28+ Pts / White 20+ Pts',
-            'Tatum 28.5+ Pts / Ball 23.5+ Pts',
-            'Jokić Triple-Double / Durant 30+ Pts / Tatum 35+ PRA',
-            'Dončić Over 27.5 Pts / Sabonis Over 11.5 Reb / Maxey 25+ Pts',
-            'Mobley 18.5+ Pts / Sabonis 24.5+ Pts',
-            'Edwards 30+ Pts / Brunson 8+ Ast / Gilgeous-Alexander 35+ Pts'
-        ],
-        'target_odds': ['+265', '+580', '+275', '+2200', '+620', '+280', '+2450'],
-        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON'],
-        'units_pnl': [2.65, 5.8, 2.75, -1.0, 6.2, 2.8, 24.5]
-    })
-    ledger_df['date'] = pd.to_datetime
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA'],
+        'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5'],
+        'book_odds': [-110, -125, -115, -110, -105, -110, -115],
+        'model_prob': ['73.0%', '68.0%', '71.0%', '70.0%', '72.0%', '69.0%', '72.0%'],
+        'result':
