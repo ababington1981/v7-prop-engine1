@@ -94,18 +94,22 @@ st.markdown("""
 st.title("🏀 AlphaProp Edge Finder+")
 st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Suggested Picks Ledger.")
 
-# --- Sidebar Controls & Book Selector ---
+# --- Sidebar Controls & Book Selector Button Group ---
 st.sidebar.header("⚙️ Engine Parameters")
 today_date = datetime.now().date()
 selected_date = st.sidebar.date_input("Select Slate Date", today_date)
 
 st.sidebar.divider()
-st.sidebar.subheader("🏛️ Sportsbook Simulator")
-selected_bookmaker = st.sidebar.selectbox(
+st.sidebar.subheader("🏛️ Sportsbook Value Checker")
+selected_bookmaker = st.sidebar.segmented_control(
     "Choose Target Bookmaker:",
     options=["DraftKings", "FanDuel", "BetMGM", "Caesars", "Bovada"],
-    index=0
+    default="DraftKings",
+    selection_mode="single"
 )
+# Fallback safety if unselected
+if not selected_bookmaker:
+    selected_bookmaker = "DraftKings"
 
 min_prob = st.sidebar.slider("Minimum True Probability Threshold", 0.50, 0.90, 0.70, 0.01)
 show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=True)
@@ -183,7 +187,7 @@ if enable_manual_override:
             f"{row['player']} ({row['team']}) - {row['stat_type']}",
             value=float(row['live_line']),
             step=0.5,
-            key=f"syntaxfix_sync_line_{idx}"
+            key=f"finderplus_btn_sync_{idx}"
         )
         df.loc[idx, 'live_line'] = new_line
 else:
@@ -319,7 +323,7 @@ with tab2:
     )
     
     csv_export = display_board.to_csv(index=False).encode('utf-8')
-    st.download_button(f"📥 Export {selected_bookmaker} Board to CSV", data=csv_export, file_name=f"alphaprop_{selected_bookmaker}_board_{selected_date}.csv", mime="text/csv")
+    st.download_button(f"📥 Export {selected_bookmaker} Board to CSV", data=csv_export, file_name=f"alphaprop_finderplus_{selected_bookmaker}_board_{selected_date}.csv", mime="text/csv")
 
 with tab3:
     st.subheader("🏟️ Game-by-Game Matchup Selector")
@@ -368,7 +372,7 @@ with tab5:
                 st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
             with col_b:
                 alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
-                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"syntaxfix_alt_{player_name}")
+                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"finderplus_btn_alt_{player_name}")
                 
                 chosen_line = float(chosen_selection.split()[0])
                 chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
@@ -417,7 +421,7 @@ with tab6:
         st.dataframe(suggested_picks_df, use_container_width=True)
         
         picks_csv = suggested_picks_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Export Suggested Picks to CSV", data=picks_csv, file_name=f"alphaprop_suggested_picks_{selected_date}.csv", mime="text/csv")
+        st.download_button("📥 Export Suggested Picks to CSV", data=picks_csv, file_name=f"alphaprop_finderplus_suggested_picks_{selected_date}.csv", mime="text/csv")
         
     with pick_sub2:
         st.markdown("### Historical Parlay Strategy Performance")
@@ -435,4 +439,4 @@ with tab6:
         st.dataframe(parlay_history_df, use_container_width=True)
         
         parlay_csv = parlay_history_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Export Parlay Ledger to CSV", data=parlay_csv, file_name=f"alphaprop_parlay_ledger_{selected_date}.csv", mime="text/csv")
+        st.download_button("📥 Export Parlay Ledger to CSV", data=parlay_csv, file_name=f"alphaprop_finderplus_parlay_ledger_{selected_date}.csv", mime="text/csv")
