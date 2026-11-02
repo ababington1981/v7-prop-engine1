@@ -274,3 +274,141 @@ def load_historical_suggested_picks():
         'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'],
         'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo', 'Franz Wagner'],
         'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL', 'ORL'],
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA', 'Points'],
+        'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5', 'Over 19.5'],
+        'book_odds': [-110, -125, -115, -110, -105, -110, -115, -110],
+        'model_prob': ['73.0%', '68.0%', '71.0%', '70.0%', '72.0%', '69.0%', '72.0%', '74.0%'],
+        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON', '🟢 WON'],
+        'units_pnl': [0.91, 0.80, 0.87, -1.00, 0.95, 0.91, 0.87, 0.91]
+    })
+    picks_df['date'] = pd.to_datetime(picks_df['date']).dt.date
+    return picks_df
+
+suggested_picks_df = load_historical_suggested_picks()
+
+# --- App Tabs (7 Clean Tabs) ---
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "⭐ Recommendations", 
+    "📋 Slate Board", 
+    "🏟️ Matchups", 
+    "🤖 Parlay Center",
+    "🎟️ Ladder Builder",
+    "🔬 5-Lens Prop Auditor",
+    "📊 Win/Loss Ledger"
+])
+
+with tab1:
+    st.subheader(f"🎯 Expanded Slate Recommendations ({selected_bookmaker})")
+    st.markdown(f"Displaying all props clearing **{min_prob*100:.0f}%+ true probability** on live **{selected_bookmaker}** pricing curves for **{selected_date}** (Last synced: `{st.session_state.sync_timestamp.strftime('%H:%M:%S')}`).")
+    
+    rec_df = df[df['true_probability'] >= min_prob]
+    if show_only_mispriced:
+        rec_df = rec_df[rec_df['mispriced_flag'] == '💎 MISPRICED VALUE']
+        
+    if rec_df.empty:
+        st.warning(f"No props meet the current {min_prob*100:.0f}% threshold with current filters.")
+    else:
+        for idx, row in rec_df.iterrows():
+            with st.container():
+                c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
+                c1.write(f"**{row['player']} ({row['team']})**\nMatchup: *{row['matchup']}*")
+                c2.write(f"🎯 **Prop:** {row['stat_type']} ({row['prop_line']})\nOdds: **{row['book_odds']}**")
+                c3.metric("Model Win Prob", f"{row['true_probability']*100:.1f}%", delta=f"+{row['edge']*100:.1f}% Edge")
+                c4.write(f"🔥 **Status:**\n{row['mispriced_flag']}")
+                st.divider()
+
+with tab2:
+    st.subheader(f"📋 Complete Available Props Board ({selected_bookmaker})")
+    search_query = st.text_input("Search player name or team:", "", key="tab2_search_input")
+    
+    if search_query:
+        display_board = df[
+            df['player'].str.contains(search_query, case=False, na=False) | 
+            df['team'].str.contains(search_query, case=False, na=False)
+        ]
+    else:
+        display_board = df
+        
+    if show_only_mispriced:
+        display_board = display_board[display_board['mispriced_flag'] == '💎 MISPRICED VALUE']
+
+    st.dataframe(
+        display_board[['matchup', 'player', 'team', 'stat_type', 'prop_line', 'book_odds', 'true_probability', 'mispriced_flag']],
+        use_container_width=True
+    )
+    
+    csv_export = display_board.to_csv(index=False).encode('utf-8')
+    if st.download_button(
+        f"📥 Export {selected_bookmaker} Board to CSV", 
+        data=csv_export, 
+        file_name=f"alphaprop_{selected_bookmaker}_board_{selected_date}.csv", 
+        mime="text/csv",
+        key="tab2_csv_export"
+    ):
+        st.toast("Board successfully exported to CSV!", icon="📥")
+
+with tab3:
+    st.subheader("🏟️ Game-by-Game Matchup Selector")
+    selected_game = st.selectbox("Select a matchup to inspect all props:", ['All Games'] + list(df['matchup'].unique()), key="tab3_matchup_select")
+    matchup_df = df if selected_game == 'All Games' else df[df['matchup'] == selected_game]
+    st.dataframe(matchup_df[['player', 'team', 'stat_type', 'prop_line', 'book_odds', 'true_probability']], use_container_width=True)
+
+with tab4:
+    st.subheader("🤖 Multi-Model Automated Parlay Center")
+    model_choice = st.selectbox("Select Parlay Strategy Model:", [
+        "🛡️ Model 1: High-Floor Misprice SGP (2-Leg Attack)",
+        "⚡ Model 2: EV Correlated Ticket (+EV Value Accumulator)",
+        "🚀 Model 3: Moonshot Ceiling Escalator (+2000 Long-Shot Ticket)"
+    ], key="tab4_model_select")
+    
+    if "Model 1" in model_choice:
+        st.info(f"🛡️ **High-Floor Misprice SGP ({selected_bookmaker}):** Focuses strictly on attacking book mispricings.")
+        st.markdown(f"- **Coby White (CHA):** Over 12.5 Points ({selected_bookmaker} Alt Pricing)\n- **Shai Gilgeous-Alexander (OKC):** Over 30.5 Points")
+        st.success("🎯 **Target Odds:** +265 | **True Win Prob:** ~48.2%")
+    elif "Model 2" in model_choice:
+        st.info(f"⚡ **EV Correlated Ticket ({selected_bookmaker}):** Bundles high-confidence picks.")
+        st.markdown("- **Tyrese Maxey (PHI):** Over 29.5 Pts\n- **Jalen Brunson (NYK):** Over 25.5 Pts")
+        st.success("🎯 **Target Odds:** +585 | **True Win Prob:** ~36.2%")
+    else:
+        st.info(f"🚀 **Moonshot Ceiling Escalator ({selected_bookmaker}):** Long-shot ticket.")
+        st.markdown("- **Giannis Antetokounmpo:** 50+ PRA Alt")
+        st.success("🎯 **Target Odds:** +2250 | **True Win Prob:** ~6.8%")
+
+with tab5:
+    st.subheader(f"🎟️ Multi-Book Alt Ladder Builder ({selected_bookmaker})")
+    st.markdown(f"Select players and pick true alternate rungs priced specifically via **{selected_bookmaker}**:")
+    
+    rec_players = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]['player'].tolist()
+    default_selection = rec_players[:2] if rec_players else df['player'].tolist()[:2]
+    
+    selected_alt_players = st.multiselect(
+        "Select players for ladder alt parlay:", 
+        options=df['player'].tolist(), 
+        default=default_selection,
+        key="tab5_ladder_multiselect_players"
+    )
+    
+    if selected_alt_players:
+        alt_items = []
+        slip_details = []
+        
+        for player_name in selected_alt_players:
+            p_row = df[df['player'] == player_name].iloc[0]
+            alt_dict = p_row['alt_options']
+            
+            col_a, col_b = st.columns([2, 3])
+            with col_a:
+                st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
+            with col_b:
+                alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
+                chosen_selection = st.selectbox(
+                    f"Select Alt Rung ({player_name})", 
+                    options=alt_choices, 
+                    index=2, 
+                    key=f"tab5_alt_rung_select_{player_name}"
+                )
+                
+                chosen_line = float(chosen_selection.split()[0])
+                chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
+            
+            alt_items.append((float(p_row['live_line']), chosen_line, float(p_row
