@@ -57,4 +57,63 @@ st.markdown("""
         font-weight: 800;
         border: 1px solid #38bdf8 !important;
     }
-    .
+    .stButton>button, .stDownloadButton>button {
+        background-color: #38bdf8;
+        color: #0e1626;
+        font-weight: 800;
+        border-radius: 8px;
+        border: none;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease-in-out;
+    }
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        background-color: #0ea5e9;
+        color: #0e1626;
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+    [data-testid="stDataFrame"] {
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+        background-color: #111827;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- App Header ---
+st.title("🏀 AlphaProp Edge Finder+")
+st.markdown("Multi-Book Alt Engine, Live Odds API Sync, Filterable Ledgers, and Dynamic Ladder Builder.")
+
+# --- Sidebar Controls & Live Odds Sync Trigger ---
+st.sidebar.header("⚙️ Engine Parameters")
+today_date = datetime.now().date()
+selected_date = st.sidebar.date_input("Select Slate Date", today_date)
+
+st.sidebar.divider()
+st.sidebar.subheader("🏛️ Sportsbook Value Checker")
+selected_bookmaker = st.sidebar.segmented_control(
+    "Choose Target Bookmaker:",
+    options=["DraftKings", "FanDuel", "BetMGM", "Caesars", "Bovada"],
+    default="DraftKings",
+    selection_mode="single"
+)
+if not selected_bookmaker:
+    selected_bookmaker = "DraftKings"
+
+st.sidebar.divider()
+st.sidebar.subheader("🔄 Live Odds API Sync")
+api_key_input = st.sidebar.text_input("Enter Odds API Key (Optional)", type="password", help="Leave blank to use simulated real-time WebSocket book feeds.")
+sync_odds_btn = st.sidebar.button("⚡ Fetch & Update Live Odds")
+
+min_prob = st.sidebar.slider("Minimum True Probability Threshold", 0.50, 0.90, 0.65, 0.01)
+show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=True)
+
+# --- Universal Multi-Book Alt-Line Pricing Engine ---
+def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
+    book_multipliers = {
+        "DraftKings": 1.00,
+        "FanDuel": 0.98,
+        "BetMGM": 1.03,
+        "Caesars": 1.05,
+        "Bovada": 0.95
+    }
+    
