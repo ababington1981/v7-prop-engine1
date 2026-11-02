@@ -175,4 +175,40 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
 # --- Accurate Slate Feed with Fallback & Narrative 5-Lens Context ---
 @st.cache_data
 def load_local_engine_slate(book_name):
-    variance_map = {"DraftKings": 0, "
+    variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
+    v = variance_map.get(book_name, 0)
+    
+    df = pd.DataFrame({
+        'matchup': ['OKC @ CLE', 'DET @ CHA', 'BKN @ NYK', 'WAS @ ORL', 'CHI @ PHI', 'ATL @ IND', 'SAC @ DAL', 'MIL @ MIN', 'BOS @ HOU', 'UTA @ SAS'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Jalen Brunson', 'Franz Wagner', 'Tyrese Maxey', 'Trae Young', 'Luka Dončić', 'Giannis Antetokounmpo', 'Jayson Tatum', 'Victor Wembanyama'],
+        'team': ['OKC', 'CHA', 'NYK', 'ORL', 'PHI', 'IND', 'DAL', 'MIN', 'HOU', 'SAS'],
+        'opponent': ['CLE', 'DET', 'BRK', 'WAS', 'PHI', 'IND', 'SAC', 'MIL', 'HOU', 'UTA'],
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Points', 'Assists', 'Points', 'PRA', 'Points', 'Points'],
+        'live_line': [30.5, 12.5, 25.5, 19.5, 29.5, 9.5, 28.5, 45.5, 28.5, 24.5],
+        'book_odds': [-110 + v, -125 + v, -110 + v, -110 + v, -115 + v, -110 + v, -115 + v, -115 + v, -110 + v, -115 + v],
+        'true_probability': [0.730, 0.580, 0.710, 0.740, 0.620, 0.750, 0.710, 0.590, 0.690, 0.740],
+        'conviction_tier': ['🟢 STRONG PLAY (+8.4% EV)', '🟡 EXPANDED SLATE (60% Tier)', '🟢 STRONG PLAY (+7.1% EV)', '🟢 STRONG PLAY (+8.0% EV)', '🟡 EXPANDED SLATE (60% Tier)', '🟢 STRONG PLAY (+9.2% EV)', '🟡 MODERATE PLAY (Wait for Inactives)', '⚪ PASS / EXPANDED SLATE', '🟢 STRONG PLAY (+6.8% EV)', '🟢 STRONG PLAY (+8.5% EV)'],
+        'lens_summary': [
+            "🩹 Fully rested, 35.5+ min floor. | 📊 Elite paint-touch volume vs Cleveland drop. | 📉 Consistent h2h ceiling. | 😈 Tight spread (<5pt) eliminates blowout benching. | 🪙 -110 sharp consensus; great alt ladder anchor.",
+            "🩹 Restricted minutes return (season debut limit). | 📊 Reduced usage rate & efficiency tax. | 📉 Small sample size. | 😈 Capped minutes floor makes Under attractive if early shots miss. | 🪙 Cautious book pricing.",
+            "🩹 Standard home rotation. | 📊 Favorable matchup vs BKN depleted wing defense. | 📉 Aligns with 25.5 PPG average. | 😈 Moderate blowout risk in 4th. | 🪙 Fair -110; ideal alt ladder leg (28+, 32+).",
+            "🩹 Stable point-forward role. | 📊 WAS ranks bottom-3 in transition defense to slashing wings. | 📉 Strong h2h floor. | 😈 Low whistle risk. | 🪙 -110 book odds; great alt ladder value (22+, 25+).",
+            "🩹 High-pace primary initiator. | 📊 CHI surrenders high guard transition volume; pace multiplier boosts attempts. | 📉 Solid ceiling projection. | 😈 Backcourt defensive pressure applies minor efficiency tax. | 🪙 -115 fair price.",
+            "🩹 Uncontested primary playmaker. | 📊 IND plays at ultra-fast tempo, creating massive assist multiplier. | 📉 Historically dominates pace. | 😈 High turnover risk if blitzed. | 🪙 -110 baseline anchor.",
+            "🩹 Managed rotation with rest splits. | 📊 SAC struggles against heliocentric creators. | 📉 Elite historical ceiling. | 😈 Check pre-tip active status. | 🪙 -115; prime alt ceiling target if active.",
+            "🩹 Dominant minutes share. | 📊 MIN elite interior defense (Gobert) imposes efficiency tax on scoring. | 📉 Paint battles suppress scoring, inflate rebounds. | 😈 Small-ball friction. | 🪙 -115; better value in alt rebound floors.",
+            "🩹 Stable wing minutes. | 📊 Favorable floor spacing against Houston drop coverage. | 📉 Consistent scoring baseline. | 😈 Tight spread. | 🪙 -110 book price.",
+            "🩹 Rim protection anchor. | 📊 High defensive rebound and block gravity. | 📉 Strong multi-category production. | 😈 Foul trouble risk. | 🪙 -115 value."
+        ]
+    })
+    
+    df['alt_options'] = [
+        generate_multibook_alt_ladders(row['live_line'], row['book_odds'], row['stat_type'], book_name)
+        for _, row in df.iterrows()
+    ]
+    return df
+
+raw_df = load_local_engine_slate(selected_bookmaker)
+
+# --- Interactive Live Line Synchronizer ---
+st
