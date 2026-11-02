@@ -149,7 +149,6 @@ def calculate_alt_parlay_metrics(items):
         
     return american_str, compounded_prob_product * 100
 
-# --- Live API Integration or Robust Comprehensive Fallback Feed ---
 @st.cache_data(ttl=600)
 def fetch_live_nba_player_props(api_key, book_name):
     if api_key and len(api_key) > 5:
@@ -255,8 +254,8 @@ def fetch_live_nba_player_props(api_key, book_name):
 def load_historical_suggested_picks():
     picks_df = pd.DataFrame({
         'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'],
-        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Jalen Brunson', 'Franz Wagner', 'Tyrese Maxey', 'Trae Young', 'Luka Dončić', 'Giannis Antetokounmpo', 'Jayson Tatum', 'Victor Wembanyama'],
-        'team': ['OKC', 'CHA', 'NYK', 'ORL', 'PHI', 'IND', 'DAL', 'MIN', 'HOU', 'SAS'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo', 'Franz Wagner'],
+        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL', 'ORL'],
         'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA', 'Points'],
         'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5', 'Over 19.5'],
         'book_odds': [-110, -125, -115, -110, -105, -110, -115, -110],
@@ -502,42 +501,4 @@ with tab6:
     st.markdown("Run any player prop through our conversational **5-Lens Gauntlet** to instantly unpack the analytical breakdown and game script narrative.")
     
     audit_player = st.selectbox("Select Player for 5-Lens Audit:", options=df['player'].tolist(), key="tab6_audit_player_select")
-    aud_row = df[df['player'] == audit_player].iloc[0]
-    
-    col_a1, col_a2, col_a3 = st.columns(3)
-    col_a1.metric("Selected Prop", f"{aud_row['player']} ({aud_row['team']})")
-    col_a2.metric("Baseline Line", f"{aud_row['stat_type']} {aud_row['prop_line']}")
-    col_a3.metric("Model Win Prob", f"{aud_row['true_probability']*100:.1f}%")
-    
-    st.divider()
-    
-    st.markdown("### 💬 Conversational 5-Lens Breakdown")
-    st.info(aud_row['lens_summary'])
-    
-    st.divider()
-    st.success(f"**Conviction Tier & Recommendation:**\n- **Status:** {aud_row['conviction_tier']}\n- **Hit Probability:** ~{aud_row['true_probability']*100:.1f}% vs. Book Implied {aud_row['implied_prob']*100:.1f}%\n- **Execution Timing:** `[LOCK EARLY]`")
-
-with tab7:
-    st.subheader("📊 Historical Daily Picks & Win/Loss Ledger")
-    st.markdown("Track daily engine-suggested picks, book odds, model win probabilities, and final outcomes (`WON` / `LOST`).")
-    
-    f_col1, f_col2 = st.columns(2)
-    with f_col1:
-        min_date = suggested_picks_df['date'].min()
-        max_date = suggested_picks_df['date'].max()
-        date_range_ledger = st.date_input(
-            "Filter Date Range:",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date,
-            key="tab7_ledger_date_slicer"
-        )
-    with f_col2:
-        result_filter_ledger = st.selectbox(
-            "Filter by Result:",
-            options=["All Results", "🟢 WON", "🔴 LOST"],
-            index=0,
-            key="tab7_ledger_result_filter"
-        )
-        
-    filtered_ledger
+    aud_row = df
