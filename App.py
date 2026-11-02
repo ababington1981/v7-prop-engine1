@@ -1,28 +1,14 @@
-# --- Authoritative Roster & Matchup Master Dictionary ---
-AUTHORITATIVE_ROSTERS = {
-    "Coby White": {"team": "CHA", "opponent": "BOS", "matchup": "CHA @ BOS"},
-    "LaMelo Ball": {"team": "CHA", "opponent": "BOS", "matchup": "CHA @ BOS"},
-    "Jayson Tatum": {"team": "BOS", "opponent": "CHA", "matchup": "CHA @ BOS"},
-    "Nikola Vučević": {"team": "CHI", "opponent": "BOS", "matchup": "CHI @ BOS"},
-    "Bam Adebayo": {"team": "MIA", "opponent": "IND", "matchup": "MIA @ IND"},
-    "Tyrese Haliburton": {"team": "IND", "opponent": "MIA", "matchup": "MIA @ IND"},
-    "Luka Dončić": {"team": "DAL", "opponent": "SAC", "matchup": "SAC @ DAL"},
-    "Domantas Sabonis": {"team": "SAC", "opponent": "DAL", "matchup": "SAC @ DAL"},
-    "Kevin Durant": {"team": "PHX", "opponent": "DEN", "matchup": "PHX @ DEN"},
-    "Nikola Jokić": {"team": "DEN", "opponent": "PHX", "matchup": "PHX @ DEN"}
-}
-
-def sanitize_and_map_rosters(df):
-    """
-    Intercepts any raw dataframe, standardizes player names, 
-    and enforces correct verified team affiliations and matchups.
-    """
-    for idx, row in df.iterrows():
-        player_name = row['player']
-        if player_name in AUTHORITATIVE_ROSTERS:
-            # Enforce strict authoritative team and matchup mapping
-            df.loc[idx, 'team'] = AUTHORITATIVE_ROSTERS[player_name]['team']
-            df.loc[idx, 'opponent'] = AUTHORITATIVE_ROSTERS[player_name]['opponent']
-            df.loc[idx, 'matchup'] = AUTHORITATIVE_ROSTERS[player_name]['matchup']
-            
-    return df
+@st.cache_data(ttl=300)
+def load_slate_board(date_obj):
+    return pd.DataFrame({
+        'matchup': ['CHA @ BOS', 'CHA @ BOS', 'CHI @ BOS', 'MIA @ IND', 'MIA @ IND', 'SAC @ DAL', 'SAC @ DAL', 'PHX @ DEN', 'PHX @ DEN'],
+        'player': ['Coby White', 'LaMelo Ball', 'Jayson Tatum', 'Bam Adebayo', 'Tyrese Haliburton', 'Luka Dončić', 'Domantas Sabonis', 'Kevin Durant', 'Nikola Jokić'],
+        'team': ['CHA', 'CHA', 'BOS', 'MIA', 'IND', 'DAL', 'SAC', 'PHX', 'DEN'],
+        'opponent': ['BOS', 'BOS', 'CHA', 'IND', 'MIA', 'DAL', 'SAC', 'DEN', 'PHX'],
+        'stat_type': ['Points', 'Points', 'Points', 'Rebounds', 'Assists', 'Points', 'Rebounds', 'Points', 'PRA'],
+        'live_line': [19.5, 23.5, 28.5, 10.5, 9.5, 27.5, 11.5, 24.5, 48.5],
+        'book_odds': [-115, -110, -110, -125, +100, -115, +105, -120, -110],
+        'true_probability': [0.720, 0.750, 0.690, 0.760, 0.710, 0.710, 0.765, 0.735, 0.700],
+        'absence_reason': ['none', 'none', 'none', 'injury', 'none', 'rest', 'none', 'none', 'none'],
+        'games_missed': [0, 0, 0, 3, 0, 1, 0, 0, 0]
+    })
