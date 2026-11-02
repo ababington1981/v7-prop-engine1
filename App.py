@@ -68,7 +68,7 @@ st.markdown("""
     /* Buttons - Vibrant Action Cyan */
     .stButton>button, .stDownloadButton>button {
         background-color: #38bdf8;
-        color: #090d16;
+        color: #0e1626;
         font-weight: 800;
         border-radius: 8px;
         border: none;
@@ -77,7 +77,7 @@ st.markdown("""
     }
     .stButton>button:hover, .stDownloadButton>button:hover {
         background-color: #0ea5e9;
-        color: #090d16;
+        color: #0e1626;
         box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
     }
     
@@ -315,4 +315,102 @@ with tab4:
     model_choice = st.selectbox("Select Parlay Strategy Model:", [
         "🛡️ Model 1: High-Floor Misprice SGP (2-Leg Attack)",
         "⚡ Model 2: v7 EV Correlated Ticket (+EV Value Accumulator)",
-        "🚀 Model 3: Moonshot Ceiling
+        "🚀 Model 3: Moonshot Ceiling Escalator (+2000 Long-Shot Ticket)"
+    ])
+    
+    if "Model 1" in model_choice:
+        st.info(f"🛡️ **High-Floor Misprice SGP ({selected_bookmaker}):** Focuses strictly on attacking book mispricings.")
+        st.markdown(f"- **Coby White (CHA):** Over 12.5 Points ({selected_bookmaker} Alt Pricing)\n- **Shai Gilgeous-Alexander (OKC):** Over 30.5 Points")
+        st.success("🎯 **Target Odds:** +265 | **True Win Prob:** ~48.2%")
+    elif "Model 2" in model_choice:
+        st.info(f"⚡ **v7 EV Correlated Ticket ({selected_bookmaker}):** Bundles high-confidence picks.")
+        st.markdown("- **Tyrese Maxey (PHI):** Over 29.5 Pts\n- **Jalen Brunson (NYK):** Over 25.5 Pts")
+        st.success("🎯 **Target Odds:** +585 | **True Win Prob:** ~36.2%")
+    else:
+        st.info(f"🚀 **Moonshot Ceiling Escalator ({selected_bookmaker}):** Long-shot ticket.")
+        st.markdown("- **Giannis Antetokounmpo:** 50+ PRA Alt")
+        st.success("🎯 **Target Odds:** +2250 | **True Win Prob:** ~6.8%")
+
+with tab5:
+    st.subheader(f"🎟️ Multi-Book Alt Ladder Builder ({selected_bookmaker})")
+    st.markdown(f"Select players and pick true alternate rungs priced specifically via **{selected_bookmaker}**:")
+    
+    rec_players = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]['player'].tolist()
+    selected_alt_players = st.multiselect("Select players for ladder alt parlay:", options=df['player'].tolist(), default=rec_players[:2] if rec_players else df['player'].tolist()[:2])
+    
+    if selected_alt_players:
+        alt_items = []
+        slip_details = []
+        
+        for player_name in selected_alt_players:
+            p_row = df[df['player'] == player_name].iloc[0]
+            alt_dict = p_row['alt_options']
+            
+            col_a, col_b = st.columns([2, 3])
+            with col_a:
+                st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
+            with col_b:
+                alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
+                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"safe_multibook_alt_{player_name}")
+                
+                chosen_line = float(chosen_selection.split()[0])
+                chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
+            
+            alt_items.append((float(p_row['live_line']), chosen_line, float(p_row['true_probability']), int(chosen_odds)))
+            slip_details.append(f"- **{p_row['player']} ({p_row['team']})**: {p_row['stat_type']} {chosen_line}+ Rung @ **{chosen_odds}** ({selected_bookmaker})")
+            st.divider()
+            
+        comp_odds, comp_prob = calculate_alt_parlay_metrics(alt_items)
+        
+        st.markdown("### 🎯 Compiled Ladder Slip Metrics")
+        for detail in slip_details:
+            st.write(detail)
+            
+        st.divider()
+        col_m1, col_m2 = st.columns(2)
+        col_m1.metric("🎯 Ladder Combined Odds", comp_odds)
+        col_m2.metric("📈 Compounded Cover Probability", f"{comp_prob:.1f}%")
+        
+        if comp_odds.startswith("+"):
+            st.success(f"🔥 **{selected_bookmaker} Ladder Ready:** Combined Odds `{comp_odds}` with a real-time cover probability of `{comp_prob:.1f}%`!")
+        else:
+            st.warning(f"⚠️ Combined odds are heavily favored (`{comp_odds}`).")
+    else:
+        st.info("Select players above to construct your ladder alt parlay slip.")
+
+with tab6:
+    st.subheader("📊 Historical Model Hit-Rates & Ledger")
+    p_col1, p_col2 = st.columns(2)
+    with p_col1:
+        model_filter = st.selectbox("Filter by Parlay Model:", ['All Models', '🛡️ High-Floor', '⚡ v7 EV Accumulator', '🚀 Moonshot Ceiling'])
+    with p_col2:
+        date_filter = st.date_input(
+            "📅 Date Range Filter:",
+            value=(parlay_history_df['date'].min(), parlay_history_df['date'].max())
+        )
+    
+    filtered_parlays = parlay_history_df.copy()
+    if model_filter != 'All Models':
+        filtered_parlays = filtered_parlays[filtered_parlays['model_strategy'].str.contains(model_filter.split()[1])]
+        
+    if isinstance(date_filter, tuple) and len(date_filter) == 2:
+        s_date, e_date = date_filter
+        filtered_parlays = filtered_parlays[
+            (filtered_parlays['date'] >= s_date) & (filtered_parlays['date'] <= e_date)
+        ]
+
+    total_slates = len(filtered_parlays)
+    wins = len(filtered_parlays[filtered_parlays['result'].str.contains('WON')])
+    win_rate = (wins / total_slates * 100) if total_slates > 0 else 0
+    total_pnl = filtered_parlays['units_pnl'].sum()
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Tracked Parlay Slates", total_slates)
+    m2.metric("Historical Model Hit Rate", f"{win_rate:.1f}% ({wins}/{total_slates})")
+    m3.metric("Net Cumulative Profit", f"+{total_pnl:.1f} Units")
+    
+    st.divider()
+    st.dataframe(filtered_parlays, use_container_width=True)
+    
+    parlay_csv = filtered_parlays.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Export Ledger to CSV", data=parlay_csv, file_name=f"v7_parlay_ledger_{selected_date}.csv", mime="text/csv")
