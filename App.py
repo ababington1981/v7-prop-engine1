@@ -210,4 +210,30 @@ st.sidebar.divider()
 st.sidebar.subheader("🔄 Live Line Synchronizer")
 enable_manual_override = st.sidebar.checkbox("Enable Live Line Adjustments", value=True)
 
-if
+if enable_manual_override and len(df) > 0:
+    synced_rows = []
+    for idx, row in df.iterrows():
+        new_line = st.sidebar.number_input(
+            f"{row['player']} ({row['team']}) - {row['stat_type']}",
+            value=float(row['live_line']),
+            step=0.5,
+            key=f"syntaxfix_sync_{idx}_{row['player']}"
+        )
+        row_copy = row.copy()
+        row_copy['live_line'] = new_line
+        synced_rows.append(row_copy)
+    df = pd.DataFrame(synced_rows)
+
+df['prop_line'] = 'O/U ' + df['live_line'].astype(str)
+
+def odds_to_prob(odds):
+    return 100 / (odds + 100) if odds > 0 else abs(odds) / (abs(odds) + 100)
+
+df['implied_prob'] = df['book_odds'].apply(odds_to_prob)
+df['edge'] = df['true_probability'] - df['implied_prob']
+df['mispriced_flag'] = np.where((df['edge'] >= 0.08) & (df['true_probability'] >= min_prob), '💎 MISPRICED VALUE', 'STANDARD MARKET')
+
+def calculate_alt_parlay_metrics(items):
+    if not items:
+        return "+0", 0.0
+    
