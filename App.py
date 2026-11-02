@@ -57,14 +57,4 @@ st.markdown("""
         font-weight: 800;
         border: 1px solid #38bdf8 !important;
     }
-    .stButton>button, .stDownloadButton>button {
-        background-color: #38bdf8;
-        color: #0e1626;
-        font-weight: 800;
-        border-radius: 8px;
-        border: none;
-        padding: 0.5rem 1rem;
-        transition: all 0.2s ease-in-out;
-    }
-    .stButton>button:hover, .stDownloadButton>button:hover {
-        background-color: #0
+    .
