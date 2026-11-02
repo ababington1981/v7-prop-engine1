@@ -11,62 +11,81 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Clean Original Design with Cool Blue Background ---
+# --- Polished Deep Slate & Modern Dark Mode Aesthetic ---
 st.markdown("""
 <style>
-    /* Cool Blue Background */
+    /* Main App Background - Deep Slate Midnight */
     .stApp {
-        background-color: #0e1626;
-        color: #f1f5f9;
+        background-color: #090d16;
+        color: #f8fafc;
     }
     
-    /* Sidebar Styling */
+    /* Sidebar Styling - Distinct Slate Container */
     [data-testid="stSidebar"] {
-        background-color: #162238;
-        border-right: 1px solid #1e293b;
+        background-color: #111827;
+        border-right: 1px solid #1f2937;
     }
     
-    /* Standard Metric Cards */
+    /* Metric Cards - Elevated Slate Surface with Cyan Glow Border */
     [data-testid="stMetric"] {
-        background-color: #162238;
-        border: 1px solid #283854;
-        padding: 15px;
-        border-radius: 8px;
+        background-color: #111827;
+        border: 1px solid #1f2937;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     }
     [data-testid="stMetricValue"] {
         color: #38bdf8 !important;
         font-weight: 800;
+        font-size: 1.8rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #94a3b8 !important;
+        font-weight: 600;
     }
     
-    /* Tabs Styling */
+    /* Tabs Styling - Crisp Contrast */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 10px;
+        background-color: #090d16;
+        padding: 4px;
     }
     .stTabs [data-baseweb="tab"] {
-        background-color: #162238;
-        border-radius: 6px;
+        background-color: #111827;
+        border-radius: 8px;
         color: #94a3b8;
         font-weight: 600;
-        padding: 10px 16px;
-        border: 1px solid #283854;
+        padding: 10px 18px;
+        border: 1px solid #1f2937;
     }
     .stTabs [aria-selected="true"] {
         background-color: #38bdf8 !important;
-        color: #0e1626 !important;
+        color: #090d16 !important;
         font-weight: 800;
+        border: 1px solid #38bdf8 !important;
     }
     
-    /* Buttons */
+    /* Buttons - Vibrant Action Cyan */
     .stButton>button, .stDownloadButton>button {
         background-color: #38bdf8;
-        color: #0e1626;
+        color: #090d16;
         font-weight: 800;
-        border-radius: 6px;
+        border-radius: 8px;
         border: none;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease-in-out;
     }
     .stButton>button:hover, .stDownloadButton>button:hover {
         background-color: #0ea5e9;
-        color: #0e1626;
+        color: #090d16;
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+    
+    /* Dataframes & Tables */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+        background-color: #111827;
     }
 </style>
 """, unsafe_allow_html=True)
