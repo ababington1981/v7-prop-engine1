@@ -12,100 +12,69 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Sporty Neon Stadium Custom CSS Styling ---
+# --- Clean Original Design with Cool Blue Background ---
 st.markdown("""
 <style>
-    /* Neon Stadium Carbon Background */
+    /* Cool Blue Background */
     .stApp {
-        background: radial-gradient(circle at 50% 0%, #111827 0%, #030712 100%);
-        color: #f3f4f6;
+        background-color: #0e1626;
+        color: #f1f5f9;
     }
     
     /* Sidebar Styling */
     [data-testid="stSidebar"] {
-        background-color: #0f172a;
+        background-color: #162238;
         border-right: 1px solid #1e293b;
     }
     
-    /* Athletic Neon Metric Cards */
+    /* Standard Metric Cards */
     [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border: 1px solid #334155;
-        border-left: 4px solid #00ff66;
-        padding: 18px;
-        border-radius: 10px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        background-color: #162238;
+        border: 1px solid #283854;
+        padding: 15px;
+        border-radius: 8px;
     }
     [data-testid="stMetricValue"] {
-        color: #00ff66 !important;
-        font-weight: 900;
-        text-shadow: 0 0 10px rgba(0, 255, 102, 0.3);
-    }
-    [data-testid="stMetricLabel"] {
-        color: #94a3b8 !important;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        color: #38bdf8 !important;
+        font-weight: 800;
     }
     
-    /* Electric Neon Tabs */
+    /* Tabs Styling */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: rgba(15, 23, 42, 0.6);
-        padding: 8px;
-        border-radius: 10px;
-        border: 1px solid #1e293b;
+        gap: 8px;
     }
     .stTabs [data-baseweb="tab"] {
-        background-color: #1e293b;
+        background-color: #162238;
         border-radius: 6px;
         color: #94a3b8;
-        font-weight: 700;
-        padding: 10px 18px;
-        border: 1px solid #334155;
-        transition: all 0.3s ease;
-    }
-    .stTabs [data-baseweb="tab"]:hover {
-        color: #00ff66;
-        border-color: #00ff66;
+        font-weight: 600;
+        padding: 10px 16px;
+        border: 1px solid #283854;
     }
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #00ff66 0%, #00b34d 100%) !important;
-        color: #030712 !important;
-        font-weight: 900;
-        box-shadow: 0 0 15px rgba(0, 255, 102, 0.5);
-        border: none !important;
+        background-color: #38bdf8 !important;
+        color: #0e1626 !important;
+        font-weight: 800;
     }
     
-    /* High-Voltage Neon Buttons & Downloads */
+    /* Buttons */
     .stButton>button, .stDownloadButton>button {
-        background: linear-gradient(135deg, #00ff66 0%, #00cc55 100%);
-        color: #030712;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border-radius: 8px;
+        background-color: #38bdf8;
+        color: #0e1626;
+        font-weight: 800;
+        border-radius: 6px;
         border: none;
-        padding: 12px 24px;
-        box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
-        transition: all 0.2s ease;
     }
     .stButton>button:hover, .stDownloadButton>button:hover {
-        background: linear-gradient(135deg, #33ff85 0%, #00ff66 100%);
-        box-shadow: 0 0 25px rgba(0, 255, 102, 0.7);
-        color: #030712;
-    }
-    
-    h1, h2, h3 {
-        font-weight: 900 !important;
-        letter-spacing: -0.02em;
+        background-color: #0ea5e9;
+        color: #0e1626;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # --- App Header ---
 st.title("🏀 v7 Prop Engine Dashboard")
-st.markdown("⚡ *Live Odds Sync | Dynamic Parlay Calculator | Neon Stadium UI | v7 EV Engine*")
+st.markdown("Live Odds Sync, Verified Rosters, Custom Alt-Line Parlays, and Hit-Rate Tracker.")
 
 # --- Sidebar Controls ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -185,7 +154,6 @@ def calculate_parlay_odds(odds_list):
     decimal_product = 1.0
     true_prob_product = 1.0
     for odds in odds_list:
-        # Convert American odds to decimal
         if odds > 0:
             dec = (odds / 100.0) + 1.0
         else:
@@ -193,7 +161,6 @@ def calculate_parlay_odds(odds_list):
         decimal_product *= dec
         true_prob_product *= odds_to_prob(odds)
     
-    # Convert combined decimal back to American odds
     if decimal_product >= 2.0:
         american = round((decimal_product - 1.0) * 100)
         american_str = f"+{american}" if american > 0 else "+100"
@@ -241,7 +208,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📋 Full Slate Board", 
     "🏟️ Game Matchup Selector", 
     "🎟️ Multi-Model Parlay Center",
-    "🎟️ Custom Parlay Builder",
+    "🎟️ Custom Alt-Line Parlay Builder",
     "📊 Model Hit-Rates & Parlay Ledger"
 ])
 
@@ -305,11 +272,11 @@ with tab4:
         st.markdown("- **Domantas Sabonis (SAC):** Over 11.5 Rebounds (`💎 Mispriced Value | +8.2% Edge`)")
         st.success("🎯 **Target Odds:** +265 | **True Win Prob:** ~48.2% (Min-Leg Misprice Attack)")
     elif "Model 2" in model_choice:
-        st.info("⚡ **v7 EV Correlated Ticket:** Bundles 3 high-confidence mispriced value picks into an optimal multi-game accumulator.")
+        st.info("⚡ **v7 EV Correlated Trust:** Bundles 3 high-confidence mispriced value picks into an optimal multi-game accumulator.")
         st.markdown("**Suggested Legs:**")
         st.markdown("- **Bam Adebayo (MIA):** Under 10.5 Rebounds (`📉 Injury Ramp Under`)")
         st.markdown("- **Luka Dončić (DAL):** 28+ Points Over (`🔥 Rest Exception`)")
-        st.markdown("- **Coby White (CHI):** 20+ Points Over (`💎 Mispriced Value`)")
+        st.markdown("- **Coby White (CHA):** 20+ Points Over (`💎 Mispriced Value`)")
         st.success("🎯 **Target Odds:** +585 | **True Win Prob:** ~36.2%")
     else:
         st.info("🚀 **Moonshot Ceiling Escalator:** Tail-event modeling combining multi-stat ceiling ladders for massive plus-money payouts.")
@@ -320,33 +287,50 @@ with tab4:
         st.success("🎯 **Target Odds:** +2250 | **True Win Prob:** ~6.8%")
 
 with tab5:
-    st.subheader("🎟️ Custom Parlay Builder (Dynamic Odds Calculation)")
-    st.markdown("Select legs below to instantly calculate combined parlay odds and true win probability:")
+    st.subheader("🎟️ Custom Alt-Line Parlay Builder")
+    st.markdown("Select suggested players from top engine recommendations to build a custom alt-line parlay ticket:")
     
-    selected_legs = st.multiselect("Select legs from the board:", options=df['player'].tolist(), default=df['player'].tolist()[:2])
+    rec_players = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]['player'].tolist()
+    selected_alt_players = st.multiselect("Select suggested players for alt-line parlay:", options=df['player'].tolist(), default=rec_players[:2] if rec_players else df['player'].tolist()[:2])
     
-    if selected_legs:
-        slip_df = df[df['player'].isin(selected_legs)]
+    if selected_alt_players:
+        st.markdown("### ⚙️ Fine-Tune Alternate Lines & Odds")
+        alt_odds_list = []
+        slip_details = []
         
-        # Calculate dynamic parlay odds and true probability
-        odds_list = slip_df['book_odds'].tolist()
-        compounded_odds, compounded_prob = calculate_parlay_odds(odds_list)
+        for player_name in selected_alt_players:
+            p_row = df[df['player'] == player_name].iloc[0]
+            col_a, col_b, col_c = st.columns([2, 2, 2])
+            with col_a:
+                st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
+            with col_b:
+                # Custom alt line adjustment slider / number input
+                custom_line = st.number_input(f"Alt Line ({p_row['player']})", value=float(p_row['live_line']), step=0.5, key=f"alt_line_{player_name}")
+            with col_c:
+                # Custom juice / odds adjustment input
+                custom_odds = st.number_input(f"Juice / Odds", value=int(p_row['book_odds']), step=5, key=f"alt_odds_{player_name}")
+            
+            alt_odds_list.append(custom_odds)
+            slip_details.append(f"- **{p_row['player']} ({p_row['team']})**: {p_row['stat_type']} O/U {custom_line} @ **{custom_odds}**")
+            st.divider()
+            
+        comp_odds, comp_prob = calculate_parlay_odds(alt_odds_list)
         
-        st.write(f"**Compiled Custom Parlay ({len(selected_legs)} Legs):**")
-        for _, row in slip_df.iterrows():
-            st.write(f"- **{row['player']} ({row['team']})**: {row['stat_type']} {row['prop_line']} @ **{row['book_odds']}** (Model Prob: `{row['true_probability']*100:.1f}%`)")
-        
+        st.markdown("### 🎯 Compiled Alt-Line Parlay Slip")
+        for detail in slip_details:
+            st.write(detail)
+            
         st.divider()
-        col_p1, col_p2 = st.columns(2)
-        col_p1.metric("🎯 Combined Parlay Odds", compounded_odds)
-        col_p2.metric("📈 Compounded Model Probability", f"{compounded_prob:.1f}%")
+        col_m1, col_m2 = st.columns(2)
+        col_m1.metric("🎯 Combined Alt-Line Odds", comp_odds)
+        col_m2.metric("📈 Compounded Model Probability", f"{comp_prob:.1f}%")
         
-        if compounded_odds.startswith("+"):
-            st.success(f"🔥 **Dynamic Slip Payout Ready:** Combined Odds `{compounded_odds}` optimized for Expected Value!")
+        if comp_odds.startswith("+"):
+            st.success(f"🔥 **Custom Alt-Line Slip Ready:** Combined Odds `{comp_odds}`!")
         else:
-            st.warning(f"⚠️ Combined odds are heavily favored (`{compounded_odds}`).")
+            st.warning(f"⚠️ Combined odds are heavily favored (`{comp_odds}`).")
     else:
-        st.info("Select players above to compile your custom slip.")
+        st.info("Select players above to construct your custom alt-line parlay slip.")
 
 with tab6:
     st.subheader("📊 Historical Model Hit-Rates & Parlay Performance Ledger")
@@ -361,4 +345,29 @@ with tab6:
             value=(parlay_history_df['date'].min(), parlay_history_df['date'].max())
         )
     
+    filtered_parlays = parlay_history_df.copy()
+    if model_filter != 'All Models':
+        filtered_parlays = filtered_parlays[filtered_parlays['model_strategy'].str.contains(model_filter.split()[1])]
+        
+    if isinstance(date_filter, tuple) and len(date_filter) == 2:
+        s_date, e_date = date_filter
+        filtered_parlays = filtered_parlays[
+            (filtered_parlays['date'] >= s_date) & (filtered_parlays['date'] <= e_date)
+        ]
+
+    total_slates = len(filtered_parlays)
+    wins = len(filtered_parlays[filtered_parlays['result'].str.contains('WON')])
+    win_rate = (wins / total_slates * 100) if total_slates > 0 else 0
+    total_pnl = filtered_parlays['units_pnl'].sum()
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Tracked Parlay Slates", total_slates)
+    m2.metric("Historical Model Hit Rate", f"{win_rate:.1f}% ({wins}/{total_slates})")
+    m3.metric("Net Cumulative Profit", f"+{total_pnl:.1f} Units")
     
+    st.divider()
+    
+    st.dataframe(filtered_parlays, use_container_width=True)
+    
+    parlay_csv = filtered_parlays.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Export Parlay Hit-Rate Ledger to CSV", data=parlay_csv, file_name="v7_parlay_hit_rate_ledger.csv", mime="text/csv")
