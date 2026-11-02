@@ -74,7 +74,7 @@ st.markdown("""
 
 # --- App Header ---
 st.title("🏀 v7 Prop Engine Dashboard")
-st.markdown("Live Odds Sync, Verified Rosters, Custom Alt-Line Parlays, and Hit-Rate Tracker.")
+st.markdown("Live Odds Sync, Verified Rosters, Real-Time Alt-Line Probabilities, and Hit-Rate Tracker.")
 
 # --- Sidebar Controls ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -147,19 +147,32 @@ df['implied_prob'] = df['book_odds'].apply(odds_to_prob)
 df['edge'] = df['true_probability'] - df['implied_prob']
 df['mispriced_flag'] = np.where((df['edge'] >= 0.08) & (df['true_probability'] >= min_prob), '💎 MISPRICED VALUE', 'STANDARD MARKET')
 
-# --- Helper Function: Calculate Compounded Parlay Odds ---
-def calculate_parlay_odds(odds_list):
-    if not odds_list:
+# --- Helper Function: Calculate Compounded Parlay Odds & Dynamic Alt Probability ---
+def calculate_alt_parlay_metrics(items):
+    """
+    items: list of tuples -> (base_line, custom_line, base_prob, odds)
+    """
+    if not items:
         return "+0", 0.0
+    
     decimal_product = 1.0
-    true_prob_product = 1.0
-    for odds in odds_list:
+    compounded_prob_product = 1.0
+    
+    for base_line, custom_line, base_prob, odds in items:
+        # Dynamic probability decay/boost based on alt line shift from market baseline
+        line_diff = custom_line - base_line
+        # Approx 4.5% probability adjustment per unit moved up/down
+        adjusted_prob = base_prob - (line_diff * 0.045)
+        adjusted_prob = max(0.05, min(0.98, adjusted_prob)) # clamp between 5% and 98%
+        
+        compounded_prob_product *= adjusted_prob
+        
+        # Calculate decimal odds for compounding
         if odds > 0:
             dec = (odds / 100.0) + 1.0
         else:
             dec = (100.0 / abs(odds)) + 1.0
         decimal_product *= dec
-        true_prob_product *= odds_to_prob(odds)
     
     if decimal_product >= 2.0:
         american = round((decimal_product - 1.0) * 100)
@@ -168,7 +181,7 @@ def calculate_parlay_odds(odds_list):
         american = round(-100.0 / (decimal_product - 1.0))
         american_str = str(american)
         
-    return american_str, true_prob_product * 100
+    return american_str, compounded_prob_product * 100
 
 # --- Historical Parlay Model Ledger Feature ---
 @st.cache_data
@@ -272,7 +285,7 @@ with tab4:
         st.markdown("- **Domantas Sabonis (SAC):** Over 11.5 Rebounds (`💎 Mispriced Value | +8.2% Edge`)")
         st.success("🎯 **Target Odds:** +265 | **True Win Prob:** ~48.2% (Min-Leg Misprice Attack)")
     elif "Model 2" in model_choice:
-        st.info("⚡ **v7 EV Correlated Trust:** Bundles 3 high-confidence mispriced value picks into an optimal multi-game accumulator.")
+        st.info("⚡ **v7 EV Correlated Ticket:** Bundles 3 high-confidence mispriced value picks into an optimal multi-game accumulator.")
         st.markdown("**Suggested Legs:**")
         st.markdown("- **Bam Adebayo (MIA):** Under 10.5 Rebounds (`📉 Injury Ramp Under`)")
         st.markdown("- **Luka Dončić (DAL):** 28+ Points Over (`🔥 Rest Exception`)")
@@ -287,15 +300,15 @@ with tab4:
         st.success("🎯 **Target Odds:** +2250 | **True Win Prob:** ~6.8%")
 
 with tab5:
-    st.subheader("🎟️ Custom Alt-Line Parlay Builder")
-    st.markdown("Select suggested players from top engine recommendations to build a custom alt-line parlay ticket:")
+    st.subheader("🎟️ Real-Time Alt-Line Parlay & Probability Builder")
+    st.markdown("Select suggested players below and adjust alternate lines. Notice how the compounded win probability and odds update live in real time:")
     
     rec_players = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]['player'].tolist()
-    selected_alt_players = st.multiselect("Select suggested players for alt-line parlay:", options=df['player'].tolist(), default=rec_players[:2] if rec_players else df['player'].tolist()[:2])
+    selected_alt_players = st.multiselect("Select players for alt-line parlay:", options=df['player'].tolist(), default=rec_players[:2] if rec_players else df['player'].tolist()[:2])
     
     if selected_alt_players:
-        st.markdown("### ⚙️ Fine-Tune Alternate Lines & Odds")
-        alt_odds_list = []
+        st.markdown("### ⚙️ Fine-Tune Alternate Lines & Juice (Real-Time Sync)")
+        alt_items = []
         slip_details = []
         
         for player_name in selected_alt_players:
@@ -304,29 +317,28 @@ with tab5:
             with col_a:
                 st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
             with col_b:
-                # Custom alt line adjustment slider / number input
-                custom_line = st.number_input(f"Alt Line ({p_row['player']})", value=float(p_row['live_line']), step=0.5, key=f"alt_line_{player_name}")
+                custom_line = st.number_input(f"Alt Line ({p_row['player']})", value=float(p_row['live_line']), step=0.5, key=f"rt_alt_line_{player_name}")
             with col_c:
-                # Custom juice / odds adjustment input
-                custom_odds = st.number_input(f"Juice / Odds", value=int(p_row['book_odds']), step=5, key=f"alt_odds_{player_name}")
+                custom_odds = st.number_input(f"Juice / Odds", value=int(p_row['book_odds']), step=5, key=f"rt_alt_odds_{player_name}")
             
-            alt_odds_list.append(custom_odds)
+            alt_items.append((float(p_row['live_line']), custom_line, float(p_row['true_probability']), int(custom_odds)))
             slip_details.append(f"- **{p_row['player']} ({p_row['team']})**: {p_row['stat_type']} O/U {custom_line} @ **{custom_odds}**")
             st.divider()
             
-        comp_odds, comp_prob = calculate_parlay_odds(alt_odds_list)
+        # Dynamically calculate real-time compounded odds and adjusted probability
+        comp_odds, comp_prob = calculate_alt_parlay_metrics(alt_items)
         
-        st.markdown("### 🎯 Compiled Alt-Line Parlay Slip")
+        st.markdown("### 🎯 Compiled Real-Time Slip Metrics")
         for detail in slip_details:
             st.write(detail)
             
         st.divider()
         col_m1, col_m2 = st.columns(2)
-        col_m1.metric("🎯 Combined Alt-Line Odds", comp_odds)
-        col_m2.metric("📈 Compounded Model Probability", f"{comp_prob:.1f}%")
+        col_m1.metric("🎯 Real-Time Combined Odds", comp_odds)
+        col_m2.metric("📈 Adjusted Compounded Probability", f"{comp_prob:.1f}%")
         
         if comp_odds.startswith("+"):
-            st.success(f"🔥 **Custom Alt-Line Slip Ready:** Combined Odds `{comp_odds}`!")
+            st.success(f"🔥 **Live Alt-Line Ready:** Combined Odds `{comp_odds}` with a real-time cover probability of `{comp_prob:.1f}%`!")
         else:
             st.warning(f"⚠️ Combined odds are heavily favored (`{comp_odds}`).")
     else:
