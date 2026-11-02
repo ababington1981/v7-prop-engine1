@@ -103,21 +103,21 @@ BOOK_KEYS = {
 
 # --- Live API Odds Ingestion Function ---
 @st.cache_data(ttl=120)
-def fetch_live_odds_slate(date_str, book_name):
-    api_key = st.secrets.get("ODDS_API_KEY", "YOUR_API_KEY_HERE")
-    book_key = BOOK_KEYS.get(book_name, "draftkings")
-    
-    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
-    params = {
-        "apiKey": api_key,
-        "regions": "us",
-        "markets": "player_points,player_rebounds,player_assists",
-        "oddsFormat": "american",
-        "bookmakers": book_key
-    }
-    
+def fetch_live_odds_slate(book_name):
     try:
-        response = requests.get(url, params=params, timeout=6)
+        api_key = st.secrets["secrets"]["ODDS_API_KEY"]
+        book_key = BOOK_KEYS.get(book_name, "draftkings")
+        
+        url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+        params = {
+            "apiKey": api_key,
+            "regions": "us",
+            "markets": "player_points,player_rebounds,player_assists",
+            "oddsFormat": "american",
+            "bookmakers": book_key
+        }
+        
+        response = requests.get(url, params=params, timeout=8)
         if response.status_code == 200:
             data = response.json()
             parsed_rows = []
@@ -127,36 +127,29 @@ def fetch_live_odds_slate(date_str, book_name):
                 away_team = event.get('away_team', 'Away')
                 matchup_str = f"{away_team[:3].upper()} @ {home_team[:3].upper()}"
                 
-                bookmakers = event.get('bookmakers', [])
-                for book in bookmakers:
+                for book in event.get('bookmakers', []):
                     if book.get('key') == book_key:
                         for market in book.get('markets', []):
                             m_key = market.get('key')
                             stat_map = {'player_points': 'Points', 'player_rebounds': 'Rebounds', 'player_assists': 'Assists'}
                             if m_key in stat_map:
                                 for outcome in market.get('outcomes', []):
-                                    player_name = outcome.get('description', 'Unknown')
-                                    line = outcome.get('point', 19.5)
-                                    odds = outcome.get('price', -110)
-                                    
                                     parsed_rows.append({
                                         'matchup': matchup_str,
-                                        'player': player_name,
+                                        'player': outcome.get('description', 'Unknown'),
                                         'team': away_team[:3].upper(),
                                         'opponent': home_team[:3].upper(),
                                         'stat_type': stat_map[m_key],
-                                        'live_line': float(line),
-                                        'book_odds': int(odds),
-                                        'true_probability': 0.720, # Model baseline probability
-                                        'absence_reason': 'none',
-                                        'games_missed': 0
+                                        'live_line': float(outcome.get('point', 19.5)),
+                                        'book_odds': int(outcome.get('price', -110)),
+                                        'true_probability': 0.720,
                                     })
             if parsed_rows:
                 return pd.DataFrame(parsed_rows)
     except Exception as e:
-        st.sidebar.warning(f"Live API connection notice: Using synchronized fallback slate ({e})")
+        st.sidebar.warning(f"Using synchronized fallback slate (API note: {e})")
 
-    # Fallback Synchronized Slate if API key is not yet provided or limit reached
+    # Fallback Synchronized Slate if API key is missing or quota is reached
     return pd.DataFrame({
         'matchup': ['OKC @ CLE', 'DET @ CHA', 'BKN @ NYK', 'WAS @ ORL', 'CHI @ PHI', 'ATL @ IND', 'SAC @ DAL', 'NOP @ MEM', 'MIL @ MIN', 'BOS @ HOU'],
         'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Mikal Bridges', 'Paolo Banchero', 'Tyrese Maxey', 'Trae Young', 'Luka Dončić', 'Zion Williamson', 'Giannis Antetokounmpo', 'Jayson Tatum'],
@@ -165,12 +158,10 @@ def fetch_live_odds_slate(date_str, book_name):
         'stat_type': ['Points', 'Points', 'Points', 'Points', 'Points', 'Assists', 'Points', 'Points', 'PRA', 'Points'],
         'live_line': [30.5, 19.5, 21.5, 22.5, 26.5, 9.5, 28.5, 24.5, 51.5, 28.5],
         'book_odds': [-110, -115, -110, -110, -115, -110, -115, -110, -115, -110],
-        'true_probability': [0.730, 0.720, 0.710, 0.740, 0.700, 0.750, 0.710, 0.690, 0.720, 0.690],
-        'absence_reason': ['none', 'none', 'none', 'none', 'none', 'none', 'rest', 'none', 'none', 'none'],
-        'games_missed': [0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+        'true_probability': [0.730, 0.720, 0.710, 0.740, 0.700, 0.750, 0.710, 0.690, 0.720, 0.690]
     })
 
-raw_df = fetch_live_odds_slate(str(selected_date), selected_bookmaker)
+raw_df = fetch_live_odds_slate(selected_bookmaker)
 
 # --- Standardized Alt Tiers Generator ---
 def generate_alt_ladders(base_line, base_odds):
