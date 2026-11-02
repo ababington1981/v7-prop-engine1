@@ -218,7 +218,7 @@ def fetch_live_nba_player_props(api_key, book_name):
             '🟡 MODERATE PLAY (Wait for Inactives)', '⚪ PASS / EXPANDED SLATE', '🟢 STRONG PLAY (+6.8% EV)', 
             '🟢 STRONG PLAY (+8.5% EV)', '🟢 STRONG PLAY (+6.5% EV)', '🟢 STRONG PLAY (+7.8% EV)', 
             '🟡 EXPANDED SLATE (60% Tier)', '🟡 EXPANDED SLATE (60% Tier)', '🟡 EXPANDED SLATE (60% Tier)',
-            '🟡 ROLE PLAYER TIER', '🟢 REBOUND FLOOR PLAY', '🟢 BENCH SCORER TIER', '🟢 GLASS CLEANER TIER', '🟢 WING SCORER TIER'
+            '🟡 ROLE PLAYER TIER', '🟢 REBOUND FLOOR PLAY', '🟡 BENCH SCORER TIER', '🟢 GLASS CLEANER TIER', '🟡 WING SCORER TIER'
         ],
         'lens_summary': [
             "🩹 Fully rested, 35.5+ min floor. | 📊 Elite paint-touch volume vs Cleveland drop. | 📉 Consistent h2h ceiling. | 😈 Tight spread (<5pt) eliminates blowout benching. | 🪙 -110 sharp consensus; great alt ladder anchor.",
@@ -254,8 +254,8 @@ def fetch_live_nba_player_props(api_key, book_name):
 def load_historical_suggested_picks():
     picks_df = pd.DataFrame({
         'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'],
-        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Jalen Brunson', 'Franz Wagner', 'Tyrese Maxey', 'Trae Young', 'Luka Dončić', 'Giannis Antetokounmpo'],
-        'team': ['OKC', 'CHA', 'NYK', 'ORL', 'PHI', 'IND', 'DAL', 'MIL'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo', 'Franz Wagner'],
+        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL', 'ORL'],
         'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA', 'Points'],
         'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5', 'Over 19.5'],
         'book_odds': [-110, -125, -115, -110, -105, -110, -115, -110],
@@ -300,126 +300,4 @@ else:
 
 st.sidebar.divider()
 st.sidebar.subheader("🔄 Live Odds API Sync")
-api_key_input = st.sidebar.text_input("Enter Odds API Key (Optional)", type="password", help="Leave blank to use robust fallback full-roster feeds.", key="sidebar_api_key")
-sync_odds_btn = st.sidebar.button("⚡ Fetch & Update Live Odds", key="sidebar_sync_btn")
-
-min_prob = st.sidebar.slider(
-    "Minimum True Probability Threshold", 
-    0.55, 0.90, st.session_state.min_prob, 0.01, 
-    key="sidebar_min_prob",
-    help="Lower threshold to 55%-60% to cast a wider net across stars and role players."
-)
-st.session_state.min_prob = min_prob
-show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=False, key="sidebar_mispriced_chk")
-
-if sync_odds_btn:
-    try:
-        st.session_state.sync_timestamp = datetime.now()
-        st.toast(f"Successfully synchronized live odds from {selected_bookmaker} API!", icon="⚡")
-        st.sidebar.success(f"API Sync Successful ({st.session_state.sync_timestamp.strftime('%H:%M:%S')})")
-    except Exception as e:
-        st.toast("API Sync warning: Falling back to full-roster fallback feed.", icon="⚠️")
-        st.sidebar.warning("Using robust fallback feed due to network latency.")
-
-raw_df = fetch_live_nba_player_props(api_key_input, selected_bookmaker)
-suggested_picks_df = load_historical_suggested_picks()
-
-st.sidebar.divider()
-st.sidebar.subheader("🔄 Manual Line Adjustments")
-enable_manual_override = st.sidebar.checkbox("Enable Line Customization", value=True, key="sidebar_manual_override")
-
-if enable_manual_override:
-    df = raw_df.copy()
-    for idx, row in df.iterrows():
-        new_line = st.sidebar.number_input(
-            f"{row['player']} ({row['team']}) - {row['stat_type']}",
-            value=float(row['live_line']),
-            step=0.5,
-            key=f"baseline_sync_{idx}"
-        )
-        df.loc[idx, 'live_line'] = new_line
-else:
-    df = raw_df.copy()
-
-df['prop_line'] = 'O/U ' + df['live_line'].astype(str)
-df['implied_prob'] = df['book_odds'].apply(odds_to_prob)
-df['edge'] = df['true_probability'] - df['implied_prob']
-df['mispriced_flag'] = np.where((df['edge'] >= 0.08) & (df['true_probability'] >= min_prob), '💎 MISPRICED VALUE', 'STANDARD MARKET')
-
-# ==========================================
-# --- APP TABS ---
-# ==========================================
-
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "⭐ Recommendations", 
-    "📋 Slate Board", 
-    "🏟️ Matchups", 
-    "🤖 Parlay Center",
-    "🎟️ Ladder Builder",
-    "🔬 5-Lens Prop Auditor",
-    "📊 Win/Loss Ledger"
-])
-
-with tab1:
-    st.subheader(f"🎯 Expanded Slate Recommendations ({selected_bookmaker})")
-    st.markdown(f"Displaying all player props clearing **{min_prob*100:.0f}%+ true probability** (Stars & Role Players) for **{selected_date}**.")
-    
-    rec_df = df[df['true_probability'] >= min_prob]
-    if show_only_mispriced:
-        rec_df = rec_df[rec_df['mispriced_flag'] == '💎 MISPRICED VALUE']
-        
-    if rec_df.empty:
-        st.warning(f"No props meet the current {min_prob*100:.0f}% threshold with current filters.")
-    else:
-        for idx, row in rec_df.iterrows():
-            with st.container():
-                c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
-                c1.write(f"**{row['player']} ({row['team']})**\nMatchup: *{row['matchup']}*")
-                c2.write(f"🎯 **Prop:** {row['stat_type']} ({row['prop_line']})\nOdds: **{row['book_odds']}**")
-                c3.metric("Model Win Prob", f"{row['true_probability']*100:.1f}%", delta=f"+{row['edge']*100:.1f}% Edge")
-                c4.write(f"🔥 **Status:**\n{row['mispriced_flag']}")
-                st.divider()
-
-with tab2:
-    st.subheader(f"📋 Complete Available Props Board ({selected_bookmaker})")
-    search_query = st.text_input("Search player name or team:", "", key="tab2_search_input")
-    
-    if search_query:
-        display_board = df[
-            df['player'].str.contains(search_query, case=False, na=False) | 
-            df['team'].str.contains(search_query, case=False, na=False)
-        ]
-    else:
-        display_board = df
-        
-    if show_only_mispriced:
-        display_board = display_board[display_board['mispriced_flag'] == '💎 MISPRICED VALUE']
-
-    st.dataframe(
-        display_board[['matchup', 'player', 'team', 'stat_type', 'prop_line', 'book_odds', 'true_probability', 'mispriced_flag']],
-        use_container_width=True
-    )
-    
-    csv_export = display_board.to_csv(index=False).encode('utf-8')
-    if st.download_button(
-        f"📥 Export {selected_bookmaker} Board to CSV", 
-        data=csv_export, 
-        file_name=f"alphaprop_{selected_bookmaker}_board_{selected_date}.csv", 
-        mime="text/csv",
-        key="tab2_csv_export"
-    ):
-        st.toast("Board successfully exported to CSV!", icon="📥")
-
-with tab3:
-    st.subheader("🏟️ Game-by-Game Matchup Selector")
-    selected_game = st.selectbox("Select a matchup to inspect all props:", ['All Games'] + list(df['matchup'].unique()), key="tab3_matchup_select")
-    matchup_df = df if selected_game == 'All Games' else df[df['matchup'] == selected_game]
-    st.dataframe(matchup_df[['player', 'team', 'stat_type', 'prop_line', 'book_odds', 'true_probability']], use_container_width=True)
-
-with tab4:
-    st.subheader("🤖 Multi-Model Automated Parlay Center")
-    model_choice = st.selectbox("Select Parlay Strategy Model:", [
-        "🛡️ Model 1: High-Floor Misprice SGP (2-Leg Attack)",
-        "⚡ Model 2: EV Correlated Ticket (+EV Value Accumulator)",
-        "🚀 Model 3: Moonshot Ceiling Escalator (+2000 Long-Shot Ticket)"
-    ], key="tab
+api_key_input = st.sidebar.text_input("Enter Odds API Key (
