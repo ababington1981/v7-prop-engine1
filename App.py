@@ -60,7 +60,7 @@ st.markdown("""
     }
     .stTabs [aria-selected="true"] {
         background-color: #38bdf8 !important;
-        color: #090d16 !important;
+        color: #0e1626 !important;
         font-weight: 800;
         border: 1px solid #38bdf8 !important;
     }
@@ -68,7 +68,7 @@ st.markdown("""
     /* Buttons - Vibrant Action Cyan */
     .stButton>button, .stDownloadButton>button {
         background-color: #38bdf8;
-        color: #090d16;
+        color: #0e1626;
         font-weight: 800;
         border-radius: 8px;
         border: none;
@@ -183,7 +183,7 @@ if enable_manual_override:
             f"{row['player']} ({row['team']}) - {row['stat_type']}",
             value=float(row['live_line']),
             step=0.5,
-            key=f"hist_sync_line_{idx}"
+            key=f"fixed_sync_line_{idx}"
         )
         df.loc[idx, 'live_line'] = new_line
 else:
@@ -370,62 +370,4 @@ with tab5:
     st.subheader(f"🎟️ Multi-Book Alt Ladder Builder ({selected_bookmaker})")
     st.markdown(f"Select players and pick true alternate rungs priced specifically via **{selected_bookmaker}**:")
     
-    rec_players = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]['player'].tolist()
-    selected_alt_players = st.multiselect("Select players for ladder alt parlay:", options=df['player'].tolist(), default=rec_players[:2] if rec_players else df['player'].tolist()[:2])
-    
-    if selected_alt_players:
-        alt_items = []
-        slip_details = []
-        
-        for player_name in selected_alt_players:
-            p_row = df[df['player'] == player_name].iloc[0]
-            alt_dict = p_row['alt_options']
-            
-            col_a, col_b = st.columns([2, 3])
-            with col_a:
-                st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
-            with col_b:
-                alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
-                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"picks_multibook_alt_{player_name}")
-                
-                chosen_line = float(chosen_selection.split()[0])
-                chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
-            
-            alt_items.append((float(p_row['live_line']), chosen_line, float(p_row['true_probability']), int(chosen_odds)))
-            slip_details.append(f"- **{p_row['player']} ({p_row['team']})**: {p_row['stat_type']} {chosen_line}+ Rung @ **{chosen_odds}** ({selected_bookmaker})")
-            st.divider()
-            
-        comp_odds, comp_prob = calculate_alt_parlay_metrics(alt_items)
-        
-        st.markdown("### 🎯 Compiled Ladder Slip Metrics")
-        for detail in slip_details:
-            st.write(detail)
-            
-        st.divider()
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("🎯 Ladder Combined Odds", comp_odds)
-        col_m2.metric("📈 Compounded Cover Probability", f"{comp_prob:.1f}%")
-        
-        if comp_odds.startswith("+"):
-            st.success(f"🔥 **{selected_bookmaker} Ladder Ready:** Combined Odds `{comp_odds}` with a real-time cover probability of `{comp_prob:.1f}%`!")
-        else:
-            st.warning(f"⚠️ Combined odds are heavily favored (`{comp_odds}`).")
-    else:
-        st.info("Select players above to construct your ladder alt parlay slip.")
-
-with tab6:
-    st.subheader("📊 Historical Suggested Picks & Hit-Rates")
-    st.markdown("Track and analyze historical performance across all individual engine-suggested picks and multi-leg parlay tickets.")
-    
-    # Sub-tabs for Suggested Picks vs Parlays
-    pick_sub1, pick_sub2 = st.tabs(["🎯 Individual Suggested Picks Ledger", "🎟️ Parlay Strategy Performance"])
-    
-    with pick_sub1:
-        st.markdown("### Historical Individual Engine Picks")
-        total_picks = len(suggested_picks_df)
-        wins_picks = len(suggested_picks_df[suggested_picks_df['result'].str.contains('WON')])
-        pick_win_rate = (wins_picks / total_picks * 100) if total_picks > 0 else 0
-        total_pick_pnl = suggested_picks_df['units_pnl'].sum()
-        
-        p_m1, p_m2, p_m3 = st.columns(3)
-        p_m
+    rec_players = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED
