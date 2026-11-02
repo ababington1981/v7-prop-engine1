@@ -115,10 +115,8 @@ with st.sidebar.form(key="engine_params_form"):
     show_only_mispriced = st.checkbox("Highlight 💎 Mispriced Value Only", value=True)
 
     st.divider()
-    # Highlighted Submit Button to Refresh Engine
     submit_button = st.form_submit_button(label="🔄 Refresh & Apply Engine")
 
-# Fallback safety if unselected
 if not selected_bookmaker:
     selected_bookmaker = "DraftKings"
 
@@ -157,7 +155,6 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
         
     return alt_market
 
-# --- Accurate Slate Feed with Corrected Lines & Injury Statuses ---
 @st.cache_data
 def load_local_engine_slate(book_name):
     variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
@@ -183,7 +180,6 @@ def load_local_engine_slate(book_name):
 
 raw_df = load_local_engine_slate(selected_bookmaker)
 
-# --- Interactive Live Line Synchronizer ---
 st.sidebar.divider()
 st.sidebar.subheader("🔄 Live Line Synchronizer")
 enable_manual_override = st.sidebar.checkbox("Enable Live Line Adjustments", value=True)
@@ -195,7 +191,7 @@ if enable_manual_override:
             f"{row['player']} ({row['team']}) - {row['stat_type']}",
             value=float(row['live_line']),
             step=0.5,
-            key=f"submitbtn_sync_line_{idx}"
+            key=f"advanced_filter_sync_{idx}"
         )
         df.loc[idx, 'live_line'] = new_line
 else:
@@ -203,7 +199,6 @@ else:
 
 df['prop_line'] = 'O/U ' + df['live_line'].astype(str)
 
-# --- Apply v7 Engine Logic ---
 def odds_to_prob(odds):
     return 100 / (odds + 100) if odds > 0 else abs(odds) / (abs(odds) + 100)
 
@@ -211,7 +206,6 @@ df['implied_prob'] = df['book_odds'].apply(odds_to_prob)
 df['edge'] = df['true_probability'] - df['implied_prob']
 df['mispriced_flag'] = np.where((df['edge'] >= 0.08) & (df['true_probability'] >= min_prob), '💎 MISPRICED VALUE', 'STANDARD MARKET')
 
-# --- Helper Function: Calculate Compounded Parlay Metrics ---
 def calculate_alt_parlay_metrics(items):
     if not items:
         return "+0", 0.0
@@ -240,19 +234,19 @@ def calculate_alt_parlay_metrics(items):
         
     return american_str, compounded_prob_product * 100
 
-# --- Historical Ledgers ---
 @st.cache_data
 def load_historical_suggested_picks():
     picks_df = pd.DataFrame({
-        'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01'],
-        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo'],
-        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL'],
-        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA'],
-        'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5'],
-        'book_odds': [-110, -125, -115, -110, -105, -110, -115],
-        'model_prob': ['73.0%', '68.0%', '71.0%', '70.0%', '72.0%', '69.0%', '72.0%'],
-        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON'],
-        'units_pnl': [0.91, 0.80, 0.87, -1.00, 0.95, 0.91, 0.87]
+        'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo', 'Jalen Brunson'],
+        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL', 'NYK'],
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA', 'Assists'],
+        'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5', 'Over 8.5'],
+        'book_odds': [-110, -125, -115, -110, -105, -110, -115, -120],
+        'model_prob': ['73.0%', '68.0%', '71.0%', '70.0%', '72.0%', '69.0%', '72.0%', '74.0%'],
+        'confidence_tier': ['🟢 STRONG', '🟡 MODERATE', '🟢 STRONG', '🟡 MODERATE', '🟢 STRONG', '🟡 MODERATE', '🟢 STRONG', '🟢 STRONG'],
+        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON', '⏳ PENDING'],
+        'units_pnl': [0.91, 0.80, 0.87, -1.00, 0.95, 0.91, 0.87, 0.00]
     })
     picks_df['date'] = pd.to_datetime(picks_df['date']).dt.date
     return picks_df
@@ -331,7 +325,7 @@ with tab2:
     )
     
     csv_export = display_board.to_csv(index=False).encode('utf-8')
-    st.download_button(f"📥 Export {selected_bookmaker} Board to CSV", data=csv_export, file_name=f"alphaprop_submitbtn_{selected_bookmaker}_board_{selected_date}.csv", mime="text/csv")
+    st.download_button(f"📥 Export {selected_bookmaker} Board to CSV", data=csv_export, file_name=f"alphaprop_advanced_{selected_bookmaker}_board_{selected_date}.csv", mime="text/csv")
 
 with tab3:
     st.subheader("🏟️ Game-by-Game Matchup Selector")
@@ -380,7 +374,7 @@ with tab5:
                 st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
             with col_b:
                 alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
-                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"submitbtn_alt_{player_name}")
+                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"advanced_alt_{player_name}")
                 
                 chosen_line = float(chosen_selection.split()[0])
                 chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
@@ -414,22 +408,48 @@ with tab6:
     pick_sub1, pick_sub2 = st.tabs(["🎯 Individual Suggested Picks Ledger", "🎟️ Parlay Strategy Performance"])
     
     with pick_sub1:
-        st.markdown("### Historical Individual Engine Picks")
-        total_picks = len(suggested_picks_df)
-        wins_picks = len(suggested_picks_df[suggested_picks_df['result'].str.contains('WON')])
-        pick_win_rate = (wins_picks / total_picks * 100) if total_picks > 0 else 0
-        total_pick_pnl = suggested_picks_df['units_pnl'].sum()
+        st.markdown("### Granular Individual Engine Picks Tracker")
         
-        p_m1, p_m2, p_m3 = st.columns(3)
-        p_m1.metric("Total Suggested Picks", total_picks)
-        p_m2.metric("Individual Pick Hit Rate", f"{pick_win_rate:.1f}% ({wins_picks}/{total_picks})")
-        p_m3.metric("Net Individual Units PnL", f"+{total_pick_pnl:.2f} Units")
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+        with f_col1:
+            result_filter = st.selectbox("Filter by Result:", options=["All", "🟢 WON", "🔴 LOST", "⏳ PENDING"], index=0, key="filter_result")
+        with f_col2:
+            tier_filter = st.selectbox("Filter by Confidence Tier:", options=["All", "🟢 STRONG", "🟡 MODERATE"], index=0, key="filter_tier")
+        with f_col3:
+            stat_filter = st.selectbox("Filter by Stat Type:", options=["All"] + list(suggested_picks_df['stat_type'].unique()), index=0, key="filter_stat")
+        with f_col4:
+            search_query = st.text_input("Search Player or Team:", "", key="filter_search")
+            
+        filtered_picks = suggested_picks_df.copy()
+        if result_filter != "All":
+            filtered_picks = filtered_picks[filtered_picks['result'] == result_filter]
+        if tier_filter != "All":
+            filtered_picks = filtered_picks[filtered_picks['confidence_tier'] == tier_filter]
+        if stat_filter != "All":
+            filtered_picks = filtered_picks[filtered_picks['stat_type'] == stat_filter]
+        if search_query:
+            q = search_query.lower()
+            filtered_picks = filtered_picks[
+                filtered_picks['player'].str.lower().str.contains(q) | 
+                filtered_picks['team'].str.lower().str.contains(q)
+            ]
+            
+        settled_picks = filtered_picks[filtered_picks['result'] != '⏳ PENDING']
+        total_settled = len(settled_picks)
+        wins_filtered = len(settled_picks[settled_picks['result'].str.contains('WON')])
+        filtered_win_rate = (wins_filtered / total_settled * 100) if total_settled > 0 else 0
+        filtered_pnl = filtered_picks['units_pnl'].sum()
+        
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Filtered Picks Count", len(filtered_picks))
+        m2.metric("Filtered Hit Rate", f"{filtered_win_rate:.1f}% ({wins_filtered}/{total_settled})")
+        m3.metric("Filtered Net Units PnL", f"+{filtered_pnl:.2f} Units" if filtered_pnl >= 0 else f"{filtered_pnl:.2f} Units")
         
         st.divider()
-        st.dataframe(suggested_picks_df, use_container_width=True)
+        st.dataframe(filtered_picks, use_container_width=True)
         
-        picks_csv = suggested_picks_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Export Suggested Picks to CSV", data=picks_csv, file_name=f"alphaprop_suggested_picks_{selected_date}.csv", mime="text/csv")
+        picks_csv = filtered_picks.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Export Filtered Suggested Picks to CSV", data=picks_csv, file_name=f"alphaprop_filtered_picks_{selected_date}.csv", mime="text/csv")
         
     with pick_sub2:
         st.markdown("### Historical Parlay Strategy Performance")
