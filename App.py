@@ -54,4 +54,56 @@ st.markdown("""
         background-color: #111827;
         border-radius: 8px;
         color: #94a3b8;
-        font
+        font-weight: 600;
+        padding: 10px 14px;
+        border: 1px solid #1f2937;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #38bdf8 !important;
+        color: #0e1626 !important;
+        font-weight: 800;
+        border: 1px solid #38bdf8 !important;
+    }
+    
+    /* Buttons - Vibrant Action Cyan */
+    .stButton>button, .stDownloadButton>button {
+        background-color: #38bdf8;
+        color: #0e1626;
+        font-weight: 800;
+        border-radius: 8px;
+        border: none;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease-in-out;
+    }
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        background-color: #0ea5e9;
+        color: #0e1626;
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+    
+    /* Dataframes & Tables */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+        background-color: #111827;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- App Header ---
+st.title("🏀 AlphaProp Edge Finder+")
+st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Suggested Picks Ledger.")
+
+# --- Sidebar Controls & Book Selector Button Group ---
+st.sidebar.header("⚙️ Engine Parameters")
+today_date = datetime.now().date()
+selected_date = st.sidebar.date_input("Select Slate Date", today_date)
+
+st.sidebar.divider()
+st.sidebar.subheader("🏛️ Sportsbook Value Checker")
+selected_bookmaker = st.sidebar.segmented_control(
+    "Choose Target Bookmaker:",
+    options=["DraftKings", "FanDuel", "BetMGM", "Caesars", "Bovada"],
+    default="DraftKings",
+    selection_mode="single"
+)
