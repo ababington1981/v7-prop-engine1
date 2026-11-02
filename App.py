@@ -46,7 +46,7 @@ st.markdown("""
     
     /* Tabs Styling - Crisp Contrast */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
+        gap: 8px;
         background-color: #090d16;
         padding: 4px;
     }
@@ -55,7 +55,7 @@ st.markdown("""
         border-radius: 8px;
         color: #94a3b8;
         font-weight: 600;
-        padding: 10px 18px;
+        padding: 10px 14px;
         border: 1px solid #1f2937;
     }
     .stTabs [aria-selected="true"] {
@@ -68,7 +68,7 @@ st.markdown("""
     /* Buttons - Vibrant Action Cyan */
     .stButton>button, .stDownloadButton>button {
         background-color: #38bdf8;
-        color: #0e1626;
+        color: #090d16;
         font-weight: 800;
         border-radius: 8px;
         border: none;
@@ -92,7 +92,7 @@ st.markdown("""
 
 # --- App Header ---
 st.title("🏀 v7 Prop Engine Dashboard")
-st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Hit-Rate Tracker.")
+st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Historical Tracking.")
 
 # --- Sidebar Controls & Book Selector ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -183,7 +183,7 @@ if enable_manual_override:
             f"{row['player']} ({row['team']}) - {row['stat_type']}",
             value=float(row['live_line']),
             step=0.5,
-            key=f"safe_sync_line_{idx}"
+            key=f"hist_sync_line_{idx}"
         )
         df.loc[idx, 'live_line'] = new_line
 else:
@@ -228,7 +228,23 @@ def calculate_alt_parlay_metrics(items):
         
     return american_str, compounded_prob_product * 100
 
-# --- Historical Ledger ---
+# --- Historical Ledgers & Suggested Picks Data ---
+@st.cache_data
+def load_historical_suggested_picks():
+    picks_df = pd.DataFrame({
+        'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo'],
+        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL'],
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA'],
+        'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5'],
+        'book_odds': [-110, -125, -115, -110, -105, -110, -115],
+        'model_prob': ['73.0%', '68.0%', '71.0%', '70.0%', '72.0%', '69.0%', '72.0%'],
+        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON'],
+        'units_pnl': [0.91, 0.80, 0.87, -1.00, 0.95, 0.91, 0.87]
+    })
+    picks_df['date'] = pd.to_datetime(picks_df['date']).dt.date
+    return picks_df
+
 @st.cache_data
 def load_parlay_performance_ledger():
     ledger_df = pd.DataFrame({
@@ -258,16 +274,35 @@ def load_parlay_performance_ledger():
     ledger_df['date'] = pd.to_datetime(ledger_df['date']).dt.date
     return ledger_df
 
+@st.cache_data
+def load_clv_tracking_data():
+    clv_df = pd.DataFrame({
+        'date': ['2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Jayson Tatum'],
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Points'],
+        'model_entry_line': [29.5, 11.5, 27.5, 26.5, 28.5],
+        'closing_line': [31.5, 13.0, 29.0, 28.0, 29.5],
+        'model_entry_odds': [-110, -125, -115, -110, -110],
+        'closing_odds': [-135, -145, -130, -125, -120],
+        'clv_status': ['🟢 BEAT CLOSING LINE', '🟢 BEAT CLOSING LINE', '🟢 BEAT CLOSING LINE', '🟢 BEAT CLOSING LINE', '🟡 NEUTRAL'],
+        'line_diff_value': ['+2.0 pts', '+1.5 pts', '+1.5 pts', '+1.5 pts', '+1.0 pt']
+    })
+    clv_df['date'] = pd.to_datetime(clv_df['date']).dt.date
+    return clv_df
+
+suggested_picks_df = load_historical_suggested_picks()
 parlay_history_df = load_parlay_performance_ledger()
+clv_history_df = load_clv_tracking_data()
 
 # --- App Tabs ---
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "⭐ Engine Recommendations", 
     "📋 Full Slate Board", 
     "🏟️ Game Matchup Selector", 
     "🎟️ Multi-Model Parlay Center",
     "🎟️ Ladder Alt Builder",
-    "📊 Model Hit-Rates & Ledger"
+    "📊 Suggested Picks & Hit-Rates",
+    "📈 CLV & Closing Tracker"
 ])
 
 with tab1:
@@ -351,7 +386,7 @@ with tab5:
                 st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
             with col_b:
                 alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
-                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"safe_multibook_alt_{player_name}")
+                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"picks_multibook_alt_{player_name}")
                 
                 chosen_line = float(chosen_selection.split()[0])
                 chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
@@ -379,38 +414,18 @@ with tab5:
         st.info("Select players above to construct your ladder alt parlay slip.")
 
 with tab6:
-    st.subheader("📊 Historical Model Hit-Rates & Ledger")
-    p_col1, p_col2 = st.columns(2)
-    with p_col1:
-        model_filter = st.selectbox("Filter by Parlay Model:", ['All Models', '🛡️ High-Floor', '⚡ v7 EV Accumulator', '🚀 Moonshot Ceiling'])
-    with p_col2:
-        date_filter = st.date_input(
-            "📅 Date Range Filter:",
-            value=(parlay_history_df['date'].min(), parlay_history_df['date'].max())
-        )
+    st.subheader("📊 Historical Suggested Picks & Hit-Rates")
+    st.markdown("Track and analyze historical performance across all individual engine-suggested picks and multi-leg parlay tickets.")
     
-    filtered_parlays = parlay_history_df.copy()
-    if model_filter != 'All Models':
-        filtered_parlays = filtered_parlays[filtered_parlays['model_strategy'].str.contains(model_filter.split()[1])]
+    # Sub-tabs for Suggested Picks vs Parlays
+    pick_sub1, pick_sub2 = st.tabs(["🎯 Individual Suggested Picks Ledger", "🎟️ Parlay Strategy Performance"])
+    
+    with pick_sub1:
+        st.markdown("### Historical Individual Engine Picks")
+        total_picks = len(suggested_picks_df)
+        wins_picks = len(suggested_picks_df[suggested_picks_df['result'].str.contains('WON')])
+        pick_win_rate = (wins_picks / total_picks * 100) if total_picks > 0 else 0
+        total_pick_pnl = suggested_picks_df['units_pnl'].sum()
         
-    if isinstance(date_filter, tuple) and len(date_filter) == 2:
-        s_date, e_date = date_filter
-        filtered_parlays = filtered_parlays[
-            (filtered_parlays['date'] >= s_date) & (filtered_parlays['date'] <= e_date)
-        ]
-
-    total_slates = len(filtered_parlays)
-    wins = len(filtered_parlays[filtered_parlays['result'].str.contains('WON')])
-    win_rate = (wins / total_slates * 100) if total_slates > 0 else 0
-    total_pnl = filtered_parlays['units_pnl'].sum()
-
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Tracked Parlay Slates", total_slates)
-    m2.metric("Historical Model Hit Rate", f"{win_rate:.1f}% ({wins}/{total_slates})")
-    m3.metric("Net Cumulative Profit", f"+{total_pnl:.1f} Units")
-    
-    st.divider()
-    st.dataframe(filtered_parlays, use_container_width=True)
-    
-    parlay_csv = filtered_parlays.to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Export Ledger to CSV", data=parlay_csv, file_name=f"v7_parlay_ledger_{selected_date}.csv", mime="text/csv")
+        p_m1, p_m2, p_m3 = st.columns(3)
+        p_m
