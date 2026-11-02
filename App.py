@@ -39,7 +39,7 @@ st.markdown("""
         font-weight: 600;
     }
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 6px;
         background-color: #090d16;
         padding: 4px;
     }
@@ -48,7 +48,7 @@ st.markdown("""
         border-radius: 8px;
         color: #94a3b8;
         font-weight: 600;
-        padding: 10px 14px;
+        padding: 8px 12px;
         border: 1px solid #1f2937;
     }
     .stTabs [aria-selected="true"] {
@@ -81,7 +81,7 @@ st.markdown("""
 
 # --- App Header ---
 st.title("🏀 AlphaProp Edge Finder+")
-st.markdown("Multi-Book Alt Engine, Live Odds API Sync, Dynamic Ladder Builder, and Performance Ledgers.")
+st.markdown("Multi-Book Alt Engine, Live Odds API Sync, 5-Lens Prop Auditor, and Visual Analytics Charts.")
 
 # --- Sidebar Controls & Live Odds Sync Trigger ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -145,7 +145,6 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
 # --- Accurate Slate Feed with Live Odds Sync Handling ---
 @st.cache_data
 def load_local_engine_slate(book_name, sync_trigger_timestamp=None):
-    # Dynamic variance simulation based on selected bookmaker and sync trigger
     variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
     v = variance_map.get(book_name, 0)
     
@@ -167,7 +166,6 @@ def load_local_engine_slate(book_name, sync_trigger_timestamp=None):
     ]
     return df
 
-# Manage sync state in session memory
 if "sync_timestamp" not in st.session_state:
     st.session_state.sync_timestamp = datetime.now()
 
@@ -238,15 +236,15 @@ def calculate_alt_parlay_metrics(items):
 @st.cache_data
 def load_historical_suggested_picks():
     picks_df = pd.DataFrame({
-        'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01'],
-        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo'],
-        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL'],
-        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA'],
-        'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5'],
-        'book_odds': [-110, -125, -115, -110, -105, -110, -115],
-        'model_prob': ['73.0%', '68.0%', '71.0%', '70.0%', '72.0%', '69.0%', '72.0%'],
-        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON'],
-        'units_pnl': [0.91, 0.80, 0.87, -1.00, 0.95, 0.91, 0.87]
+        'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo', 'Franz Wagner'],
+        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL', 'ORL'],
+        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Rebounds', 'Points', 'PRA', 'Points'],
+        'recommended_prop': ['Over 30.5', 'Over 11.5', 'Over 28.5', 'Over 26.5', 'Over 11.5', 'Over 28.5', 'Over 45.5', 'Over 19.5'],
+        'book_odds': [-110, -125, -115, -110, -105, -110, -115, -110],
+        'model_prob': ['73.0%', '68.0%', '71.0%', '70.0%', '72.0%', '69.0%', '72.0%', '74.0%'],
+        'result': ['🟢 WON', '🟢 WON', '🟢 WON', '🔴 LOST', '🟢 WON', '🟢 WON', '🟢 WON', '🟢 WON'],
+        'units_pnl': [0.91, 0.80, 0.87, -1.00, 0.95, 0.91, 0.87, 0.91]
     })
     picks_df['date'] = pd.to_datetime(picks_df['date']).dt.date
     return picks_df
@@ -283,14 +281,15 @@ def load_parlay_performance_ledger():
 suggested_picks_df = load_historical_suggested_picks()
 parlay_history_df = load_parlay_performance_ledger()
 
-# --- App Tabs (6 Clean Tabs) ---
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "⭐ Engine Recommendations", 
-    "📋 Full Slate Board", 
-    "🏟️ Game Matchup Selector", 
-    "🎟️ Multi-Model Parlay Center",
-    "🎟️ Ladder Alt Builder",
-    "📊 Suggested Picks & Hit-Rates"
+# --- App Tabs (7 Clean Tabs including 5-Lens Auditor & Analytics) ---
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "⭐ Recommendations", 
+    "📋 Slate Board", 
+    "🏟️ Matchups", 
+    "🤖 Parlay Center",
+    "🎟️ Ladder Builder",
+    "🔬 5-Lens Prop Auditor",
+    "📊 Analytics & Ledgers"
 ])
 
 with tab1:
@@ -311,8 +310,12 @@ with tab1:
 with tab2:
     st.subheader(f"📋 Complete Available Props Board ({selected_bookmaker})")
     search_query = st.text_input("Search player name or team:", "")
+    
     if search_query:
-        display_board = df[df['player'].str.contains(search_query, case=False) | df['team'].str.contains(search_query, case=False)]
+        display_board = df[
+            df['player'].str.contains(search_query, case=False, na=False) | 
+            df['team'].str.contains(search_query, case=False, na=False)
+        ]
     else:
         display_board = df
         
@@ -325,7 +328,12 @@ with tab2:
     )
     
     csv_export = display_board.to_csv(index=False).encode('utf-8')
-    st.download_button(f"📥 Export {selected_bookmaker} Board to CSV", data=csv_export, file_name=f"alphaprop_{selected_bookmaker}_board_{selected_date}.csv", mime="text/csv")
+    st.download_button(
+        f"📥 Export {selected_bookmaker} Board to CSV", 
+        data=csv_export, 
+        file_name=f"alphaprop_{selected_bookmaker}_board_{selected_date}.csv", 
+        mime="text/csv"
+    )
 
 with tab3:
     st.subheader("🏟️ Game-by-Game Matchup Selector")
@@ -407,48 +415,4 @@ with tab5:
         if comp_odds.startswith("+"):
             st.success(f"🔥 **{selected_bookmaker} Ladder Ready:** Combined Odds `{comp_odds}` with a real-time cover probability of `{comp_prob:.1f}%`!")
         else:
-            st.warning(f"⚠️ Combined odds are heavily favored (`{comp_odds}`).")
-    else:
-        st.info("Select players above to construct your ladder alt parlay slip.")
-
-with tab6:
-    st.subheader("📊 Historical Suggested Picks & Hit-Rates")
-    st.markdown("Track and analyze historical performance across all individual engine-suggested picks and multi-leg parlay tickets.")
-    
-    pick_sub1, pick_sub2 = st.tabs(["🎯 Individual Suggested Picks Ledger", "🎟️ Parlay Strategy Performance"])
-    
-    with pick_sub1:
-        st.markdown("### Historical Individual Engine Picks")
-        total_picks = len(suggested_picks_df)
-        wins_picks = len(suggested_picks_df[suggested_picks_df['result'].str.contains('WON')])
-        pick_win_rate = (wins_picks / total_picks * 100) if total_picks > 0 else 0
-        total_pick_pnl = suggested_picks_df['units_pnl'].sum()
-        
-        p_m1, p_m2, p_m3 = st.columns(3)
-        p_m1.metric("Total Suggested Picks", total_picks)
-        p_m2.metric("Individual Pick Hit Rate", f"{pick_win_rate:.1f}% ({wins_picks}/{total_picks})")
-        p_m3.metric("Net Individual Units PnL", f"+{total_pick_pnl:.2f} Units")
-        
-        st.divider()
-        st.dataframe(suggested_picks_df, use_container_width=True)
-        
-        picks_csv = suggested_picks_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Export Suggested Picks to CSV", data=picks_csv, file_name=f"alphaprop_suggested_picks_{selected_date}.csv", mime="text/csv")
-        
-    with pick_sub2:
-        st.markdown("### Historical Parlay Strategy Performance")
-        total_slates = len(parlay_history_df)
-        wins_parlays = len(parlay_history_df[parlay_history_df['result'].str.contains('WON')])
-        parlay_win_rate = (wins_parlays / total_slates * 100) if total_slates > 0 else 0
-        total_parlay_pnl = parlay_history_df['units_pnl'].sum()
-        
-        l_m1, l_m2, l_m3 = st.columns(3)
-        l_m1.metric("Tracked Parlay Slates", total_slates)
-        l_m2.metric("Parlay Strategy Hit Rate", f"{parlay_win_rate:.1f}% ({wins_parlays}/{total_slates})")
-        l_m3.metric("Net Parlay Units PnL", f"+{total_parlay_pnl:.1f} Units")
-        
-        st.divider()
-        st.dataframe(parlay_history_df, use_container_width=True)
-        
-        parlay_csv = parlay_history_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Export Parlay Ledger to CSV", data=parlay_csv, file_name=f"alphaprop_parlay_ledger_{selected_date}.csv", mime="text/csv")
+            st.warning
