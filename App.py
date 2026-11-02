@@ -12,9 +12,71 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- Sporty Custom CSS Styling ---
+st.markdown("""
+<style>
+    /* Global Sporty Dark Theme */
+    .stApp {
+        background-color: #0b0f19;
+        color: #f8fafc;
+    }
+    
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #131a2a;
+        border-right: 1px solid #1e293b;
+    }
+    
+    /* Athletic Metric Cards */
+    [data-testid="stMetric"] {
+        background-color: #131a2a;
+        border: 1px solid #1e293b;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    [data-testid="stMetricValue"] {
+        color: #00ff66 !important;
+        font-weight: 800;
+    }
+    
+    /* Neon Tabs & Highlights */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #131a2a;
+        border-radius: 6px;
+        color: #94a3b8;
+        font-weight: 600;
+        padding: 10px 16px;
+        border: 1px solid #1e293b;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #00ff66 !important;
+        color: #0b0f19 !important;
+        font-weight: 800;
+    }
+    
+    /* Buttons & Downloads */
+    .stButton>button, .stDownloadButton>button {
+        background: linear-gradient(135deg, #00ff66 0%, #00b34d 100%);
+        color: #0b0f19;
+        font-weight: 800;
+        border-radius: 6px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 255, 102, 0.3);
+    }
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        background: linear-gradient(135deg, #1aff75 0%, #00cc55 100%);
+        color: #0b0f19;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- App Header ---
 st.title("🏀 v7 Prop Engine Dashboard")
-st.markdown("Official Live Roster Feed Integration, v7 EV Engine, and Min-Leg Mispriced SGP Center.")
+st.markdown("⚡ *Live Odds Sync | Sporty Stadium UI | v7 EV Engine | Min-Leg Mispriced SGP Center*")
 
 # --- Sidebar Controls ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -25,15 +87,12 @@ show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only",
 # --- Live Official Roster & Odds Data Ingestion ---
 @st.cache_data(ttl=300)
 def fetch_official_roster_and_odds(date_obj):
-    # Attempt to pull from live API if secret key is present
     try:
         api_key = st.secrets["secrets"]["ODDS_API_KEY"]
-        # Official sports data feed endpoint for active slates & verified rosters
         url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
         params = {"apiKey": api_key, "regions": "us", "markets": "player_points,player_rebounds,player_assists", "oddsFormat": "american"}
         response = requests.get(url, params=params, timeout=5)
         if response.status_code == 200:
-            # If live API connects successfully, parse live JSON...
             pass
     except Exception:
         pass
