@@ -92,7 +92,7 @@ st.markdown("""
 
 # --- App Header ---
 st.title("🏀 v7 Prop Engine Dashboard")
-st.markdown("Multi-Book Engine, Live Line Sync, 5-Point Ladders, and Hit-Rate Tracker.")
+st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Hit-Rate Tracker.")
 
 # --- Sidebar Controls & Book Selector ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -110,13 +110,48 @@ selected_bookmaker = st.sidebar.selectbox(
 min_prob = st.sidebar.slider("Minimum True Probability Threshold", 0.50, 0.90, 0.70, 0.01)
 show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=True)
 
+# --- Universal Multi-Book Alt-Line Pricing Engine ---
+def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
+    book_multipliers = {
+        "DraftKings": 1.00,  # Sharp standard baseline
+        "FanDuel": 0.98,     # Aggressive plus-money scaling
+        "BetMGM": 1.03,      # Heavier juice on alts
+        "Caesars": 1.05,     # Steeper alt vig
+        "Bovada": 0.95       # Soft plus-money alt pricing
+    }
+    m = book_multipliers.get(book_name, 1.00)
+    
+    if stat_type == 'Points':
+        rungs = [-6.0, -3.0, 0.0, +3.0, +6.0, +9.5, +14.5]
+        base_juices = [-520, -270, base_odds, +120, +235, +440, +1050]
+    elif stat_type == 'Rebounds':
+        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+        base_juices = [-460, -230, base_odds, +135, +300, +680]
+    elif stat_type == 'Assists':
+        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+        base_juices = [-490, -240, base_odds, +145, +330, +720]
+    else: # PRA / Combo stats
+        rungs = [-8.0, -4.0, 0.0, +5.0, +10.0, +15.0]
+        base_juices = [-510, -255, base_odds, +130, +275, +590]
+        
+    alt_market = {}
+    for offset, juice in zip(rungs, base_juices):
+        rung_line = max(0.5, round((base_line + offset) * 2) / 2)
+        if juice > 0:
+            adjusted_juice = int(round(juice * (2.0 - m)))
+        else:
+            adjusted_juice = int(round(juice * m))
+        alt_market[rung_line] = adjusted_juice
+        
+    return alt_market
+
 # --- Accurate Slate Feed with Corrected Lines & Injury Statuses (Nov 2, 2026) ---
 @st.cache_data
 def load_local_engine_slate(book_name):
     variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
     v = variance_map.get(book_name, 0)
     
-    return pd.DataFrame({
+    df = pd.DataFrame({
         'matchup': ['OKC @ CLE', 'DET @ CHA', 'BKN @ NYK', 'WAS @ ORL', 'CHI @ PHI', 'ATL @ IND', 'SAC @ DAL', 'MIL @ MIN', 'BOS @ HOU', 'UTA @ SAS'],
         'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Jalen Brunson', 'Franz Wagner', 'Tyrese Maxey', 'Trae Young', 'Luka Dončić', 'Giannis Antetokounmpo', 'Jayson Tatum', 'Victor Wembanyama'],
         'team': ['OKC', 'CHA', 'NYK', 'ORL', 'PHI', 'IND', 'DAL', 'MIN', 'HOU', 'SAS'],
@@ -127,21 +162,15 @@ def load_local_engine_slate(book_name):
         'true_probability': [0.730, 0.680, 0.710, 0.740, 0.700, 0.750, 0.710, 0.720, 0.690, 0.740],
         'absence_reason': ['none', 'season_debut_mins_limit', 'none', 'none', 'none', 'none', 'rest', 'none', 'none', 'none']
     })
+    
+    # Apply book-specific true alt generator
+    df['alt_options'] = [
+        generate_multibook_alt_ladders(row['live_line'], row['book_odds'], row['stat_type'], book_name)
+        for _, row in df.iterrows()
+    ]
+    return df
 
 raw_df = load_local_engine_slate(selected_bookmaker)
-
-# --- Standardized 5-Point Ladder Tiers Generator ---
-def generate_alt_ladders(base_line, base_odds):
-    return {
-        max(5.0, base_line - 10): -900,
-        max(10.0, base_line - 5): -400,
-        base_line: base_odds,
-        base_line + 5.0: +130,
-        base_line + 10.0: +280,
-        base_line + 15.0: +650
-    }
-
-raw_df['alt_options'] = [generate_alt_ladders(row['live_line'], row['book_odds']) for _, row in raw_df.iterrows()]
 
 # --- Interactive Live Line Synchronizer ---
 st.sidebar.divider()
@@ -155,7 +184,7 @@ if enable_manual_override:
             f"{row['player']} ({row['team']}) - {row['stat_type']}",
             value=float(row['live_line']),
             step=0.5,
-            key=f"accurate_sync_line_{idx}"
+            key=f"multibook_sync_line_{idx}"
         )
         df.loc[idx, 'live_line'] = new_line
 else:
@@ -244,7 +273,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 with tab1:
     st.subheader(f"🎯 Top v7 Engine Recommendations ({selected_bookmaker})")
-    st.markdown(f"High-conviction value options for **{selected_date}** evaluated on **{selected_bookmaker}** pricing.")
+    st.markdown(f"High-conviction value options for **{selected_date}** evaluated on **{selected_bookmaker}** pricing curves.")
     
     rec_df = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]
     
@@ -292,7 +321,7 @@ with tab4:
     
     if "Model 1" in model_choice:
         st.info(f"🛡️ **High-Floor Misprice SGP ({selected_bookmaker}):** Focuses strictly on attacking book mispricings.")
-        st.markdown("- **Coby White (CHA):** Over 12.5 Points (Season Debut Minutes Limit)\n- **Shai Gilgeous-Alexander (OKC):** Over 30.5 Points")
+        st.markdown(f"- **Coby White (CHA):** Over 12.5 Points ({selected_bookmaker} Alt Pricing)\n- **Shai Gilgeous-Alexander (OKC):** Over 30.5 Points")
         st.success("🎯 **Target Odds:** +265 | **True Win Prob:** ~48.2%")
     elif "Model 2" in model_choice:
         st.info(f"⚡ **v7 EV Correlated Ticket ({selected_bookmaker}):** Bundles high-confidence picks.")
@@ -304,8 +333,8 @@ with tab4:
         st.success("🎯 **Target Odds:** +2250 | **True Win Prob:** ~6.8%")
 
 with tab5:
-    st.subheader(f"🎟️ Ladder Alt Builder ({selected_bookmaker})")
-    st.markdown(f"Select players and pick alternate lines priced via **{selected_bookmaker}**:")
+    st.subheader(f"🎟️ Multi-Book Alt Ladder Builder ({selected_bookmaker})")
+    st.markdown(f"Select players and pick true alternate rungs priced specifically via **{selected_bookmaker}**:")
     
     rec_players = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]['player'].tolist()
     selected_alt_players = st.multiselect("Select players for ladder alt parlay:", options=df['player'].tolist(), default=rec_players[:2] if rec_players else df['player'].tolist()[:2])
@@ -323,7 +352,7 @@ with tab5:
                 st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
             with col_b:
                 alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
-                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"accurate_book_alt_{player_name}")
+                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"multibook_alt_{player_name}")
                 
                 chosen_line = float(chosen_selection.split()[0])
                 chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
@@ -358,31 +387,4 @@ with tab6:
     with p_col2:
         date_filter = st.date_input(
             "📅 Date Range Filter:",
-            value=(parlay_history_df['date'].min(), parlay_history_df['date'].max())
-        )
-    
-    filtered_parlays = parlay_history_df.copy()
-    if model_filter != 'All Models':
-        filtered_parlays = filtered_parlays[filtered_parlays['model_strategy'].str.contains(model_filter.split()[1])]
-        
-    if isinstance(date_filter, tuple) and len(date_filter) == 2:
-        s_date, e_date = date_filter
-        filtered_parlays = filtered_parlays[
-            (filtered_parlays['date'] >= s_date) & (filtered_parlays['date'] <= e_date)
-        ]
-
-    total_slates = len(filtered_parlays)
-    wins = len(filtered_parlays[filtered_parlays['result'].str.contains('WON')])
-    win_rate = (wins / total_slates * 100) if total_slates > 0 else 0
-    total_pnl = filtered_parlays['units_pnl'].sum()
-
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Tracked Parlay Slates", total_slates)
-    m2.metric("Historical Model Hit Rate", f"{win_rate:.1f}% ({wins}/{total_slates})")
-    m3.metric("Net Cumulative Profit", f"+{total_pnl:.1f} Units")
-    
-    st.divider()
-    st.dataframe(filtered_parlays, use_container_width=True)
-    
-    parlay_csv = filtered_parlays.to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Export Ledger to CSV", data=parlay_csv, file_name=f"v7_parlay_ledger_{selected_date}.csv", mime="text/csv")
+            value=(parlay_history_
