@@ -92,7 +92,7 @@ st.markdown("""
 
 # --- App Header ---
 st.title("🏀 v7 Prop Engine Dashboard")
-st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Historical Tracking.")
+st.markdown("Multi-Book Alt Engine, Live Line Sync, 5-Point Ladders, and Suggested Picks Ledger.")
 
 # --- Sidebar Controls & Book Selector ---
 st.sidebar.header("⚙️ Engine Parameters")
@@ -183,7 +183,7 @@ if enable_manual_override:
             f"{row['player']} ({row['team']}) - {row['stat_type']}",
             value=float(row['live_line']),
             step=0.5,
-            key=f"endtoend_sync_line_{idx}"
+            key=f"noclv_sync_line_{idx}"
         )
         df.loc[idx, 'live_line'] = new_line
 else:
@@ -228,7 +228,7 @@ def calculate_alt_parlay_metrics(items):
         
     return american_str, compounded_prob_product * 100
 
-# --- Historical Ledgers & Suggested Picks Data ---
+# --- Historical Ledgers ---
 @st.cache_data
 def load_historical_suggested_picks():
     picks_df = pd.DataFrame({
@@ -274,35 +274,17 @@ def load_parlay_performance_ledger():
     ledger_df['date'] = pd.to_datetime(ledger_df['date']).dt.date
     return ledger_df
 
-@st.cache_data
-def load_clv_tracking_data():
-    clv_df = pd.DataFrame({
-        'date': ['2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'],
-        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Jayson Tatum'],
-        'stat_type': ['Points', 'Points', 'Points', 'Points', 'Points'],
-        'model_entry_line': [29.5, 11.5, 27.5, 26.5, 28.5],
-        'closing_line': [31.5, 13.0, 29.0, 28.0, 29.5],
-        'model_entry_odds': [-110, -125, -115, -110, -110],
-        'closing_odds': [-135, -145, -130, -125, -120],
-        'clv_status': ['🟢 BEAT CLOSING LINE', '🟢 BEAT CLOSING LINE', '🟢 BEAT CLOSING LINE', '🟢 BEAT CLOSING LINE', '🟡 NEUTRAL'],
-        'line_diff_value': ['+2.0 pts', '+1.5 pts', '+1.5 pts', '+1.5 pts', '+1.0 pt']
-    })
-    clv_df['date'] = pd.to_datetime(clv_df['date']).dt.date
-    return clv_df
-
 suggested_picks_df = load_historical_suggested_picks()
 parlay_history_df = load_parlay_performance_ledger()
-clv_history_df = load_clv_tracking_data()
 
-# --- App Tabs ---
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+# --- App Tabs (6 Clean Tabs) ---
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "⭐ Engine Recommendations", 
     "📋 Full Slate Board", 
     "🏟️ Game Matchup Selector", 
     "🎟️ Multi-Model Parlay Center",
     "🎟️ Ladder Alt Builder",
-    "📊 Suggested Picks & Hit-Rates",
-    "📈 CLV & Closing Tracker"
+    "📊 Suggested Picks & Hit-Rates"
 ])
 
 with tab1:
@@ -386,7 +368,7 @@ with tab5:
                 st.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
             with col_b:
                 alt_choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
-                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"endtoend_alt_{player_name}")
+                chosen_selection = st.selectbox(f"Select Alt Rung ({player_name})", options=alt_choices, index=2, key=f"noclv_alt_{player_name}")
                 
                 chosen_line = float(chosen_selection.split()[0])
                 chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
@@ -426,4 +408,31 @@ with tab6:
         pick_win_rate = (wins_picks / total_picks * 100) if total_picks > 0 else 0
         total_pick_pnl = suggested_picks_df['units_pnl'].sum()
         
-        p_m1,
+        p_m1, p_m2, p_m3 = st.columns(3)
+        p_m1.metric("Total Suggested Picks", total_picks)
+        p_m2.metric("Individual Pick Hit Rate", f"{pick_win_rate:.1f}% ({wins_picks}/{total_picks})")
+        p_m3.metric("Net Individual Units PnL", f"+{total_pick_pnl:.2f} Units")
+        
+        st.divider()
+        st.dataframe(suggested_picks_df, use_container_width=True)
+        
+        picks_csv = suggested_picks_df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Export Suggested Picks to CSV", data=picks_csv, file_name=f"v7_suggested_picks_ledger_{selected_date}.csv", mime="text/csv")
+        
+    with pick_sub2:
+        st.markdown("### Historical Parlay Strategy Performance")
+        total_slates = len(parlay_history_df)
+        wins_parlays = len(parlay_history_df[parlay_history_df['result'].str.contains('WON')])
+        parlay_win_rate = (wins_parlays / total_slates * 100) if total_slates > 0 else 0
+        total_parlay_pnl = parlay_history_df['units_pnl'].sum()
+        
+        l_m1, l_m2, l_m3 = st.columns(3)
+        l_m1.metric("Tracked Parlay Slates", total_slates)
+        l_m2.metric("Parlay Strategy Hit Rate", f"{parlay_win_rate:.1f}% ({wins_parlays}/{total_slates})")
+        l_m3.metric("Net Parlay Units PnL", f"+{total_parlay_pnl:.1f} Units")
+        
+        st.divider()
+        st.dataframe(parlay_history_df, use_container_width=True)
+        
+        parlay_csv = parlay_history_df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Export Parlay Ledger to CSV", data=parlay_csv, file_name=f"v7_parlay_ledger_{selected_date}.csv", mime="text/csv")
