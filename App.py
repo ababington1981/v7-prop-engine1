@@ -105,8 +105,14 @@ st.sidebar.subheader("🔄 Live Odds API Sync")
 api_key_input = st.sidebar.text_input("Enter Odds API Key (Optional)", type="password", help="Leave blank to use simulated real-time WebSocket book feeds.", key="sidebar_api_key")
 sync_odds_btn = st.sidebar.button("⚡ Fetch & Update Live Odds", key="sidebar_sync_btn")
 
-min_prob = st.sidebar.slider("Minimum True Probability Threshold", 0.50, 0.90, 0.65, 0.01, key="sidebar_min_prob")
-show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=True, key="sidebar_mispriced_chk")
+# Slider range extended down to 0.55 (55%) for expanded slate volume
+min_prob = st.sidebar.slider(
+    "Minimum True Probability Threshold", 
+    0.55, 0.90, 0.60, 0.01, 
+    key="sidebar_min_prob",
+    help="Lower threshold to 55%-60% to cast a wider net across the entire slate."
+)
+show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=False, key="sidebar_mispriced_chk")
 
 # --- Universal Multi-Book Alt-Line Pricing Engine ---
 def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
@@ -157,8 +163,8 @@ def load_local_engine_slate(book_name, sync_trigger_timestamp=None):
         'stat_type': ['Points', 'Points', 'Points', 'Points', 'Points', 'Assists', 'Points', 'PRA', 'Points', 'Points'],
         'live_line': [30.5, 12.5, 25.5, 19.5, 29.5, 9.5, 28.5, 45.5, 28.5, 24.5],
         'book_odds': [-110 + v, -125 + v, -110 + v, -110 + v, -115 + v, -110 + v, -115 + v, -115 + v, -110 + v, -115 + v],
-        'true_probability': [0.730, 0.680, 0.710, 0.740, 0.700, 0.750, 0.710, 0.720, 0.690, 0.740],
-        'conviction_tier': ['🟢 STRONG PLAY (+8.4% EV)', '🟡 MODERATE PLAY (Under Lean)', '🟢 STRONG PLAY (+7.1% EV)', '🟢 STRONG PLAY (+8.0% EV)', '🟡 MODERATE PLAY (+4.5% EV)', '🟢 STRONG PLAY (+9.2% EV)', '🟡 MODERATE PLAY (Wait for Inactives)', '⚪ PASS / MODERATE UNDER LEAN', '🟢 STRONG PLAY (+6.8% EV)', '🟢 STRONG PLAY (+8.5% EV)'],
+        'true_probability': [0.730, 0.580, 0.710, 0.740, 0.620, 0.750, 0.710, 0.590, 0.690, 0.740],
+        'conviction_tier': ['🟢 STRONG PLAY (+8.4% EV)', '🟡 EXPANDED SLATE (60% Tier)', '🟢 STRONG PLAY (+7.1% EV)', '🟢 STRONG PLAY (+8.0% EV)', '🟡 EXPANDED SLATE (60% Tier)', '🟢 STRONG PLAY (+9.2% EV)', '🟡 MODERATE PLAY (Wait for Inactives)', '⚪ PASS / EXPANDED SLATE', '🟢 STRONG PLAY (+6.8% EV)', '🟢 STRONG PLAY (+8.5% EV)'],
         'lens_summary': [
             "🩹 Fully rested, 35.5+ min floor. | 📊 Elite paint-touch volume vs Cleveland drop. | 📉 Consistent h2h ceiling. | 😈 Tight spread (<5pt) eliminates blowout benching. | 🪙 -110 sharp consensus; great alt ladder anchor.",
             "🩹 Restricted minutes return (season debut limit). | 📊 Reduced usage rate & efficiency tax. | 📉 Small sample size. | 😈 Capped minutes floor makes Under attractive if early shots miss. | 🪙 Cautious book pricing.",
@@ -306,19 +312,24 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 ])
 
 with tab1:
-    st.subheader(f"🎯 Top Engine Recommendations ({selected_bookmaker})")
-    st.markdown(f"High-conviction value options for **{selected_date}** evaluated on live **{selected_bookmaker}** pricing curves (Last synced: `{st.session_state.sync_timestamp.strftime('%H:%M:%S')}`).")
+    st.subheader(f"🎯 Expanded Slate Recommendations ({selected_bookmaker})")
+    st.markdown(f"Displaying all props clearing **{min_prob*100:.0f}%+ true probability** on live **{selected_bookmaker}** pricing curves for **{selected_date}**.")
     
-    rec_df = df[(df['true_probability'] >= min_prob) | (df['mispriced_flag'] == '💎 MISPRICED VALUE')]
-    
-    for idx, row in rec_df.iterrows():
-        with st.container():
-            c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
-            c1.write(f"**{row['player']} ({row['team']})**\nMatchup: *{row['matchup']}*")
-            c2.write(f"🎯 **Prop:** {row['stat_type']} ({row['prop_line']})\nOdds: **{row['book_odds']}**")
-            c3.write(f"📈 **Model Prob:** `{row['true_probability']*100:.1f}%`\nEdge: `+{row['edge']*100:.1f}%`")
-            c4.write(f"🔥 **Status:**\n{row['mispriced_flag']}")
-            st.divider()
+    rec_df = df[df['true_probability'] >= min_prob]
+    if show_only_mispriced:
+        rec_df = rec_df[rec_df['mispriced_flag'] == '💎 MISPRICED VALUE']
+        
+    if rec_df.empty:
+        st.warning(f"No props meet the current {min_prob*100:.0f}% threshold with current filters.")
+    else:
+        for idx, row in rec_df.iterrows():
+            with st.container():
+                c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
+                c1.write(f"**{row['player']} ({row['team']})**\nMatchup: *{row['matchup']}*")
+                c2.write(f"🎯 **Prop:** {row['stat_type']} ({row['prop_line']})\nOdds: **{row['book_odds']}**")
+                c3.write(f"📈 **Model Prob:** `{row['true_probability']*100:.1f}%`\nEdge: `+{row['edge']*100:.1f}%`")
+                c4.write(f"🔥 **Status:**\n{row['mispriced_flag']}")
+                st.divider()
 
 with tab2:
     st.subheader(f"📋 Complete Available Props Board ({selected_bookmaker})")
@@ -435,150 +446,4 @@ with tab5:
 
 with tab6:
     st.subheader("🔬 5-Lens Prop Auditor & Deep-Dive Engine")
-    st.markdown("Run any player prop through our conversational **5-Lens Gauntlet** to instantly unpack the analytical breakdown and game script narrative.")
-    
-    audit_player = st.selectbox("Select Player for 5-Lens Audit:", options=df['player'].tolist(), key="tab6_audit_player_select")
-    aud_row = df[df['player'] == audit_player].iloc[0]
-    
-    col_a1, col_a2, col_a3 = st.columns(3)
-    col_a1.metric("Selected Prop", f"{aud_row['player']} ({aud_row['team']})")
-    col_a2.metric("Baseline Line", f"{aud_row['stat_type']} {aud_row['prop_line']}")
-    col_a3.metric("Model Win Prob", f"{aud_row['true_probability']*100:.1f}%")
-    
-    st.divider()
-    
-    st.markdown("### 💬 Conversational 5-Lens Breakdown")
-    st.info(aud_row['lens_summary'])
-    
-    st.divider()
-    st.success(f"**Conviction Tier & Recommendation:**\n- **Status:** {aud_row['conviction_tier']}\n- **Hit Probability:** ~{aud_row['true_probability']*100:.1f}% vs. Book Implied {aud_row['implied_prob']*100:.1f}%\n- **Execution Timing:** `[LOCK EARLY]`")
-
-with tab7:
-    st.subheader("📊 Visual Analytics, Ledgers & Hit-Rates")
-    st.markdown("Analyze visual slate trends, game total distributions, and filterable historical performance ledgers.")
-    
-    # --- Native Streamlit Visual Charts ---
-    v_col1, v_col2 = st.columns(2)
-    with v_col1:
-        st.markdown("##### 📈 Recent Game Total Points (Distribution)")
-        totals_chart_data = pd.DataFrame({
-            'Matchup': ['CHA@BOS', 'BKN@DET', 'DAL@HOU', 'LAL@GSW', 'MIA@IND', 'MIN@LAC', 'PHI@NYK', 'PHX@DEN', 'TOR@ORL', 'WAS@CHA'],
-            'Total Points': [236, 204, 227, 207, 270, 228, 191, 247, 235, 174]
-        }).set_index('Matchup')
-        st.bar_chart(totals_chart_data, color="#38bdf8")
-        
-    with v_col2:
-        st.markdown("##### 📊 Daily Game Volume Trend (October Slate)")
-        volume_chart_data = pd.DataFrame({
-            'Date': ['Oct 20', 'Oct 21', 'Oct 22', 'Oct 23', 'Oct 24', 'Oct 25', 'Oct 26', 'Oct 27', 'Oct 28', 'Oct 29', 'Oct 30', 'Oct 31'],
-            'Games': [3, 11, 2, 12, 8, 6, 6, 4, 11, 3, 10, 7]
-        }).set_index('Date')
-        st.line_chart(volume_chart_data, color="#38bdf8")
-        
-    st.divider()
-    
-    pick_sub1, pick_sub2 = st.tabs(["🎯 Individual Suggested Picks Ledger", "🎟️ Parlay Strategy Performance"])
-    
-    with pick_sub1:
-        st.markdown("### Historical Individual Engine Picks")
-        
-        f_col1, f_col2 = st.columns(2)
-        with f_col1:
-            min_date = suggested_picks_df['date'].min()
-            max_date = suggested_picks_df['date'].max()
-            date_range_picks = st.date_input(
-                "Filter Date Range (Picks):",
-                value=(min_date, max_date),
-                min_value=min_date,
-                max_value=max_date,
-                key="tab7_picks_date_slicer"
-            )
-        with f_col2:
-            result_filter_picks = st.selectbox(
-                "Filter by Result:",
-                options=["All Results", "🟢 WON", "🔴 LOST"],
-                index=0,
-                key="tab7_picks_result_filter"
-            )
-            
-        filtered_picks_df = suggested_picks_df.copy()
-        if isinstance(date_range_picks, tuple) and len(date_range_picks) == 2:
-            start_d, end_d = date_range_picks
-            filtered_picks_df = filtered_picks_df[(filtered_picks_df['date'] >= start_d) & (filtered_picks_df['date'] <= end_d)]
-            
-        if result_filter_picks != "All Results":
-            filtered_picks_df = filtered_picks_df[filtered_picks_df['result'].str.contains(result_filter_picks)]
-
-        total_picks = len(filtered_picks_df)
-        wins_picks = len(filtered_picks_df[filtered_picks_df['result'].str.contains('WON')])
-        pick_win_rate = (wins_picks / total_picks * 100) if total_picks > 0 else 0
-        total_pick_pnl = filtered_picks_df['units_pnl'].sum() if total_picks > 0 else 0.0
-        
-        p_m1, p_m2, p_m3 = st.columns(3)
-        p_m1.metric("Filtered Picks", total_picks)
-        p_m2.metric("Pick Hit Rate", f"{pick_win_rate:.1f}% ({wins_picks}/{total_picks})")
-        p_m3.metric("Net Units PnL", f"{'+' if total_pick_pnl >= 0 else ''}{total_pick_pnl:.2f} Units")
-        
-        st.divider()
-        st.dataframe(filtered_picks_df, use_container_width=True)
-        
-        picks_csv = filtered_picks_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "📥 Export Filtered Picks to CSV", 
-            data=picks_csv, 
-            file_name=f"alphaprop_filtered_picks_{selected_date}.csv", 
-            mime="text/csv", 
-            key="tab7_export_picks_btn"
-        )
-        
-    with pick_sub2:
-        st.markdown("### Historical Parlay Strategy Performance")
-        
-        pf_col1, pf_col2 = st.columns(2)
-        with pf_col1:
-            p_min_date = parlay_history_df['date'].min()
-            p_max_date = parlay_history_df['date'].max()
-            date_range_parlays = st.date_input(
-                "Filter Date Range (Parlays):",
-                value=(p_min_date, p_max_date),
-                min_value=p_min_date,
-                max_value=p_max_date,
-                key="tab7_parlays_date_slicer"
-            )
-        with pf_col2:
-            result_filter_parlays = st.selectbox(
-                "Filter Parlay Result:",
-                options=["All Results", "🟢 WON", "🔴 LOST"],
-                index=0,
-                key="tab7_parlays_result_filter"
-            )
-            
-        filtered_parlay_df = parlay_history_df.copy()
-        if isinstance(date_range_parlays, tuple) and len(date_range_parlays) == 2:
-            p_start_d, p_end_d = date_range_parlays
-            filtered_parlay_df = filtered_parlay_df[(filtered_parlay_df['date'] >= p_start_d) & (filtered_parlay_df['date'] <= p_end_d)]
-            
-        if result_filter_parlays != "All Results":
-            filtered_parlay_df = filtered_parlay_df[filtered_parlay_df['result'].str.contains(result_filter_parlays)]
-
-        total_slates = len(filtered_parlay_df)
-        wins_parlays = len(filtered_parlay_df[filtered_parlay_df['result'].str.contains('WON')])
-        parlay_win_rate = (wins_parlays / total_slates * 100) if total_slates > 0 else 0
-        total_parlay_pnl = filtered_parlay_df['units_pnl'].sum() if total_slates > 0 else 0.0
-        
-        l_m1, l_m2, l_m3 = st.columns(3)
-        l_m1.metric("Filtered Parlay Slates", total_slates)
-        l_m2.metric("Parlay Hit Rate", f"{parlay_win_rate:.1f}% ({wins_parlays}/{total_slates})")
-        l_m3.metric("Net Parlay Units PnL", f"{'+' if total_parlay_pnl >= 0 else ''}{total_parlay_pnl:.1f} Units")
-        
-        st.divider()
-        st.dataframe(filtered_parlay_df, use_container_width=True)
-        
-        parlay_csv = filtered_parlay_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "📥 Export Filtered Parlay Ledger to CSV", 
-            data=parlay_csv, 
-            file_name=f"alphaprop_filtered_parlay_ledger_{selected_date}.csv", 
-            mime="text/csv", 
-            key="tab7_export_parlays_btn"
-        )
+    st.markdown("Run any player prop through
