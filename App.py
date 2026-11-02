@@ -145,4 +145,30 @@ def calculate_alt_parlay_metrics(items):
     
     if decimal_product >= 2.0:
         american = round((decimal_product - 1.0) * 100)
-        american_str = f"+{american
+        american_str = f"+{american}" if american > 0 else "+100"
+    else:
+        american = round(-100.0 / (decimal_product - 1.0))
+        american_str = str(american)
+        
+    return american_str, compounded_prob_product * 100
+
+@st.cache_data(ttl=600)
+def fetch_live_nba_player_props(api_key, book_name):
+    if api_key and len(api_key) > 5:
+        try:
+            url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+            params = {
+                "apiKey": api_key,
+                "regions": "us",
+                "markets": "player_points,player_rebounds,player_assists",
+                "oddsFormat": "american"
+            }
+            response = requests.get(url, params=params, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    pass 
+        except Exception:
+            pass 
+
+    variance_
