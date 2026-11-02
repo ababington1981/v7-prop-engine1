@@ -100,4 +100,54 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
     }
     m = book_multipliers.get(book_name, 1.00)
     
-    if stat
+    if stat_type == 'Points':
+        rungs = [-6.0, -3.0, 0.0, +3.0, +6.0, +9.5, +14.5]
+        base_juices = [-520, -270, base_odds, +120, +235, +440, +1050]
+    elif stat_type == 'Rebounds':
+        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+        base_juices = [-460, -230, base_odds, +135, +300, +680]
+    elif stat_type == 'Assists':
+        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+        base_juices = [-490, -240, base_odds, +145, +330, +720]
+    else: 
+        rungs = [-8.0, -4.0, 0.0, +5.0, +10.0, +15.0]
+        base_juices = [-510, -255, base_odds, +130, +275, +590]
+        
+    alt_market = {}
+    for offset, juice in zip(rungs, base_juices):
+        rung_line = max(0.5, round((base_line + offset) * 2) / 2)
+        if juice > 0:
+            adjusted_juice = int(round(juice * (2.0 - m)))
+        else:
+            adjusted_juice = int(round(juice * m))
+        alt_market[rung_line] = adjusted_juice
+        
+    return alt_market
+
+def calculate_alt_parlay_metrics(items):
+    if not items:
+        return "+0", 0.0
+    
+    decimal_product = 1.0
+    compounded_prob_product = 1.0
+    
+    for base_line, chosen_alt_line, base_prob, alt_odds in items:
+        line_diff = chosen_alt_line - base_line
+        adjusted_prob = base_prob - (line_diff * 0.045)
+        adjusted_prob = max(0.05, min(0.98, adjusted_prob))
+        compounded_prob_product *= adjusted_prob
+        
+        if alt_odds > 0:
+            dec = (alt_odds / 100.0) + 1.0
+        else:
+            dec = (100.0 / abs(alt_odds)) + 1.0
+        decimal_product *= dec
+    
+    if decimal_product >= 2.0:
+        american = round((decimal_product - 1.0) * 100)
+        american_str = f"+{american}" if american > 0 else "+100"
+    else:
+        american = round(-100.0 / (decimal_product - 1.0))
+        american_str = str(american)
+        
+    return american_
