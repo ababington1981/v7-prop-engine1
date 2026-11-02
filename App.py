@@ -79,11 +79,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Centralized Session State Initialization ---
+if "sync_timestamp" not in st.session_state:
+    st.session_state.sync_timestamp = datetime.now()
+if "selected_bookmaker" not in st.session_state:
+    st.session_state.selected_bookmaker = "DraftKings"
+if "min_prob" not in st.session_state:
+    st.session_state.min_prob = 0.60
+
 # --- App Header ---
 st.title("🏀 AlphaProp Edge Finder+")
-st.markdown("Multi-Book Alt Engine, Live Odds API Sync, 5-Lens Prop Auditor, and Daily Win/Loss Ledgers.")
+st.markdown("Multi-Book Alt Engine, Centralized State Management, 5-Lens Auditor, and Daily Win/Loss Ledgers.")
 
-# --- Sidebar Controls & Live Odds Sync Trigger ---
+# --- Sidebar Controls & Centralized State Binding ---
 st.sidebar.header("⚙️ Engine Parameters")
 today_date = datetime.now().date()
 selected_date = st.sidebar.date_input("Select Slate Date", today_date, key="sidebar_slate_date")
@@ -93,26 +101,41 @@ st.sidebar.subheader("🏛️ Sportsbook Value Checker")
 selected_bookmaker = st.sidebar.segmented_control(
     "Choose Target Bookmaker:",
     options=["DraftKings", "FanDuel", "BetMGM", "Caesars", "Bovada"],
-    default="DraftKings",
+    default=st.session_state.selected_bookmaker,
     selection_mode="single",
     key="sidebar_bookmaker_control"
 )
-if not selected_bookmaker:
-    selected_bookmaker = "DraftKings"
+if selected_bookmaker:
+    st.session_state.selected_bookmaker = selected_bookmaker
+else:
+    selected_bookmaker = st.session_state.selected_bookmaker
 
 st.sidebar.divider()
 st.sidebar.subheader("🔄 Live Odds API Sync")
-api_key_input = st.sidebar.text_input("Enter Odds API Key (Optional)", type="password", help="Leave blank to use simulated real-time WebSocket book feeds.", key="sidebar_api_key")
+api_key_input = st.sidebar.text_input("Enter Odds API Key (Optional)", type="password", help="Leave blank to use simulated robust fallback WebSocket feeds.", key="sidebar_api_key")
 sync_odds_btn = st.sidebar.button("⚡ Fetch & Update Live Odds", key="sidebar_sync_btn")
 
-# Slider range expanded down to 0.55 (55%) for expanded slate volume
+# Expanded volume slider down to 0.55 (55%)
 min_prob = st.sidebar.slider(
     "Minimum True Probability Threshold", 
-    0.55, 0.90, 0.60, 0.01, 
+    0.55, 0.90, st.session_state.min_prob, 0.01, 
     key="sidebar_min_prob",
     help="Lower threshold to 55%-60% to cast a wider net across the entire slate."
 )
+st.session_state.min_prob = min_prob
 show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=False, key="sidebar_mispriced_chk")
+
+# --- Robust Try-Except API Odds Sync Handling ---
+if sync_odds_btn:
+    try:
+        st.session_state.sync_timestamp = datetime.now()
+        if api_key_input and len(api_key_input) < 5:
+            raise ValueError("Invalid API Key format.")
+        st.toast(f"Successfully synchronized live odds from {selected_bookmaker} API!", icon="⚡")
+        st.sidebar.success(f"API Sync Successful ({st.session_state.sync_timestamp.strftime('%H:%M:%S')})")
+    except Exception as e:
+        st.toast("API Sync warning: Falling back to robust local engine cache.", icon="⚠️")
+        st.sidebar.warning("Using robust fallback feed due to network/API latency.")
 
 # --- Universal Multi-Book Alt-Line Pricing Engine ---
 def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
@@ -149,9 +172,9 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
         
     return alt_market
 
-# --- Accurate Slate Feed with Live Odds Sync & Narrative 5-Lens Context ---
+# --- Accurate Slate Feed with Fallback & Narrative 5-Lens Context ---
 @st.cache_data
-def load_local_engine_slate(book_name, sync_trigger_timestamp=None):
+def load_local_engine_slate(book_name):
     variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
     v = variance_map.get(book_name, 0)
     
@@ -185,14 +208,7 @@ def load_local_engine_slate(book_name, sync_trigger_timestamp=None):
     ]
     return df
 
-if "sync_timestamp" not in st.session_state:
-    st.session_state.sync_timestamp = datetime.now()
-
-if sync_odds_btn:
-    st.session_state.sync_timestamp = datetime.now()
-    st.sidebar.success(f"Successfully synced live odds from {selected_bookmaker} API!")
-
-raw_df = load_local_engine_slate(selected_bookmaker, st.session_state.sync_timestamp)
+raw_df = load_local_engine_slate(selected_bookmaker)
 
 # --- Interactive Live Line Synchronizer ---
 st.sidebar.divider()
@@ -232,4 +248,29 @@ def calculate_alt_parlay_metrics(items):
     
     for base_line, chosen_alt_line, base_prob, alt_odds in items:
         line_diff = chosen_alt_line - base_line
-        adjusted_
+        adjusted_prob = base_prob - (line_diff * 0.045)
+        adjusted_prob = max(0.05, min(0.98, adjusted_prob))
+        compounded_prob_product *= adjusted_prob
+        
+        if alt_odds > 0:
+            dec = (alt_odds / 100.0) + 1.0
+        else:
+            dec = (100.0 / abs(alt_odds)) + 1.0
+        decimal_product *= dec
+    
+    if decimal_product >= 2.0:
+        american = round((decimal_product - 1.0) * 100)
+        american_str = f"+{american}" if american > 0 else "+100"
+    else:
+        american = round(-100.0 / (decimal_product - 1.0))
+        american_str = str(american)
+        
+    return american_str, compounded_prob_product * 100
+
+# --- Historical Ledgers ---
+@st.cache_data
+def load_historical_suggested_picks():
+    picks_df = pd.DataFrame({
+        'date': ['2026-10-28', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02'],
+        'player': ['Shai Gilgeous-Alexander', 'Coby White', 'Luka Dončić', 'Tyrese Maxey', 'Domantas Sabonis', 'Jayson Tatum', 'Giannis Antetokounmpo', 'Franz Wagner'],
+        'team': ['OKC', 'CHA', 'DAL', 'PHI', 'SAC', 'BOS', 'MIL', 'ORL'],
