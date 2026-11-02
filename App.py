@@ -221,7 +221,7 @@ def fetch_live_nba_player_props(api_key, book_name):
             '🟡 MODERATE PLAY (Wait for Inactives)', '⚪ PASS / EXPANDED SLATE', '🟢 STRONG PLAY (+6.8% EV)', 
             '🟢 STRONG PLAY (+8.5% EV)', '🟢 STRONG PLAY (+6.5% EV)', '🟢 STRONG PLAY (+7.8% EV)', 
             '🟡 EXPANDED SLATE (60% Tier)', '🟡 EXPANDED SLATE (60% Tier)', '🟡 EXPANDED SLATE (60% Tier)',
-            '🟡 ROLE PLAYER TIER', '🟢 REBOUND FLOOR PLAY', '🟡 BENCH SCORER TIER', '🟢 GLASS CLEANER TIER', '🟢 WING SCORER TIER'
+            '🟡 ROLE PLAYER TIER', '🟢 REBOUND FLOOR PLAY', '🟡 BENCH SCORER TIER', '🟢 GLASS CLEANER TIER', '🟡 WING SCORER TIER'
         ],
         'lens_summary': [
             "Fully rested, 35.5+ min floor. | Elite paint-touch volume vs Cleveland drop. | Consistent h2h ceiling. | Tight spread eliminates blowout benching. | -110 sharp consensus; great alt ladder anchor.",
@@ -563,7 +563,7 @@ with tab7:
     m_col1, m_col2, m_col3 = st.columns(3)
     m_col1.metric("Total Filtered Picks", total_logged_picks)
     m_col2.metric("Win Rate", f"{win_rate_pct:.1f}% ({wins_logged}/{total_logged_picks})")
-    m_col3.metric("Net Units PnL", f"{'+' + str(total_units_won) if total_units_won >= 0 else total_units_won:.2f} Units")
+    m_col3.metric("Net Units PnL", f"{total_units_won:+.2f} Units")
     
     st.divider()
     
