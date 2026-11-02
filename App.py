@@ -81,12 +81,12 @@ st.markdown("""
 
 # --- App Header ---
 st.title("🏀 AlphaProp Edge Finder+")
-st.markdown("Multi-Book Alt Engine, Live Odds API Sync, 5-Lens Prop Auditor, and Visual Analytics Charts.")
+st.markdown("Multi-Book Alt Engine, Live Odds API Sync, 5-Lens Prop Auditor, and Filterable Ledgers.")
 
 # --- Sidebar Controls & Live Odds Sync Trigger ---
 st.sidebar.header("⚙️ Engine Parameters")
 today_date = datetime.now().date()
-selected_date = st.sidebar.date_input("Select Slate Date", today_date)
+selected_date = st.sidebar.date_input("Select Slate Date", today_date, key="sidebar_slate_date")
 
 st.sidebar.divider()
 st.sidebar.subheader("🏛️ Sportsbook Value Checker")
@@ -94,18 +94,19 @@ selected_bookmaker = st.sidebar.segmented_control(
     "Choose Target Bookmaker:",
     options=["DraftKings", "FanDuel", "BetMGM", "Caesars", "Bovada"],
     default="DraftKings",
-    selection_mode="single"
+    selection_mode="single",
+    key="sidebar_bookmaker_control"
 )
 if not selected_bookmaker:
     selected_bookmaker = "DraftKings"
 
 st.sidebar.divider()
 st.sidebar.subheader("🔄 Live Odds API Sync")
-api_key_input = st.sidebar.text_input("Enter Odds API Key (Optional)", type="password", help="Leave blank to use simulated real-time WebSocket book feeds.")
-sync_odds_btn = st.sidebar.button("⚡ Fetch & Update Live Odds")
+api_key_input = st.sidebar.text_input("Enter Odds API Key (Optional)", type="password", help="Leave blank to use simulated real-time WebSocket book feeds.", key="sidebar_api_key")
+sync_odds_btn = st.sidebar.button("⚡ Fetch & Update Live Odds", key="sidebar_sync_btn")
 
-min_prob = st.sidebar.slider("Minimum True Probability Threshold", 0.50, 0.90, 0.65, 0.01)
-show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=True)
+min_prob = st.sidebar.slider("Minimum True Probability Threshold", 0.50, 0.90, 0.65, 0.01, key="sidebar_min_prob")
+show_only_mispriced = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=True, key="sidebar_mispriced_chk")
 
 # --- Universal Multi-Book Alt-Line Pricing Engine ---
 def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
@@ -142,7 +143,7 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
         
     return alt_market
 
-# --- Accurate Slate Feed with Live Odds Sync Handling ---
+# --- Accurate Slate Feed with Live Odds Sync & Narrative 5-Lens Context ---
 @st.cache_data
 def load_local_engine_slate(book_name, sync_trigger_timestamp=None):
     variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
@@ -157,7 +158,19 @@ def load_local_engine_slate(book_name, sync_trigger_timestamp=None):
         'live_line': [30.5, 12.5, 25.5, 19.5, 29.5, 9.5, 28.5, 45.5, 28.5, 24.5],
         'book_odds': [-110 + v, -125 + v, -110 + v, -110 + v, -115 + v, -110 + v, -115 + v, -115 + v, -110 + v, -115 + v],
         'true_probability': [0.730, 0.680, 0.710, 0.740, 0.700, 0.750, 0.710, 0.720, 0.690, 0.740],
-        'absence_reason': ['none', 'season_debut_mins_limit', 'none', 'none', 'none', 'none', 'rest', 'none', 'none', 'none']
+        'conviction_tier': ['🟢 STRONG PLAY (+8.4% EV)', '🟡 MODERATE PLAY (Under Lean)', '🟢 STRONG PLAY (+7.1% EV)', '🟢 STRONG PLAY (+8.0% EV)', '🟡 MODERATE PLAY (+4.5% EV)', '🟢 STRONG PLAY (+9.2% EV)', '🟡 MODERATE PLAY (Wait for Inactives)', '⚪ PASS / MODERATE UNDER LEAN', '🟢 STRONG PLAY (+6.8% EV)', '🟢 STRONG PLAY (+8.5% EV)'],
+        'lens_summary': [
+            "🩹 Fully rested, 35.5+ min floor. | 📊 Elite paint-touch volume vs Cleveland drop. | 📉 Consistent h2h ceiling. | 😈 Tight spread (<5pt) eliminates blowout benching. | 🪙 -110 sharp consensus; great alt ladder anchor.",
+            "🩹 Restricted minutes return (season debut limit). | 📊 Reduced usage rate & efficiency tax. | 📉 Small sample size. | 😈 Capped minutes floor makes Under attractive if early shots miss. | 🪙 Cautious book pricing.",
+            "🩹 Standard home rotation. | 📊 Favorable matchup vs BKN depleted wing defense. | 📉 Aligns with 25.5 PPG average. | 😈 Moderate blowout risk in 4th. | 🪙 Fair -110; ideal alt ladder leg (28+, 32+).",
+            "🩹 Stable point-forward role. | 📊 WAS ranks bottom-3 in transition defense to slashing wings. | 📉 Strong h2h floor. | 😈 Low whistle risk. | 🪙 -110 book odds; great alt ladder value (22+, 25+).",
+            "🩹 High-pace primary initiator. | 📊 CHI surrenders high guard transition volume; pace multiplier boosts attempts. | 📉 Solid ceiling projection. | 😈 Backcourt defensive pressure applies minor efficiency tax. | 🪙 -115 fair price.",
+            "🩹 Uncontested primary playmaker. | 📊 IND plays at ultra-fast tempo, creating massive assist multiplier. | 📉 Historically dominates pace. | 😈 High turnover risk if blitzed. | 🪙 -110 baseline anchor.",
+            "🩹 Managed rotation with rest splits. | 📊 SAC struggles against heliocentric creators. | 📉 Elite historical ceiling. | 😈 Check pre-tip active status. | 🪙 -115; prime alt ceiling target if active.",
+            "🩹 Dominant minutes share. | 📊 MIN elite interior defense (Gobert) imposes efficiency tax on scoring. | 📉 Paint battles suppress scoring, inflate rebounds. | 😈 Small-ball friction. | 🪙 -115; better value in alt rebound floors.",
+            "🩹 Stable wing minutes. | 📊 Favorable floor spacing against Houston drop coverage. | 📉 Consistent scoring baseline. | 😈 Tight spread. | 🪙 -110 book price.",
+            "🩹 Rim protection anchor. | 📊 High defensive rebound and block gravity. | 📉 Strong multi-category production. | 😈 Foul trouble risk. | 🪙 -115 value."
+        ]
     })
     
     df['alt_options'] = [
@@ -178,7 +191,7 @@ raw_df = load_local_engine_slate(selected_bookmaker, st.session_state.sync_times
 # --- Interactive Live Line Synchronizer ---
 st.sidebar.divider()
 st.sidebar.subheader("🔄 Manual Line Adjustments")
-enable_manual_override = st.sidebar.checkbox("Enable Line Customization", value=True)
+enable_manual_override = st.sidebar.checkbox("Enable Line Customization", value=True, key="sidebar_manual_override")
 
 if enable_manual_override:
     df = raw_df.copy()
@@ -281,7 +294,7 @@ def load_parlay_performance_ledger():
 suggested_picks_df = load_historical_suggested_picks()
 parlay_history_df = load_parlay_performance_ledger()
 
-# --- App Tabs (7 Clean Tabs including 5-Lens Auditor & Analytics) ---
+# --- App Tabs (7 Clean Tabs) ---
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "⭐ Recommendations", 
     "📋 Slate Board", 
@@ -309,7 +322,7 @@ with tab1:
 
 with tab2:
     st.subheader(f"📋 Complete Available Props Board ({selected_bookmaker})")
-    search_query = st.text_input("Search player name or team:", "")
+    search_query = st.text_input("Search player name or team:", "", key="tab2_search_input")
     
     if search_query:
         display_board = df[
@@ -332,12 +345,13 @@ with tab2:
         f"📥 Export {selected_bookmaker} Board to CSV", 
         data=csv_export, 
         file_name=f"alphaprop_{selected_bookmaker}_board_{selected_date}.csv", 
-        mime="text/csv"
+        mime="text/csv",
+        key="tab2_csv_export"
     )
 
 with tab3:
     st.subheader("🏟️ Game-by-Game Matchup Selector")
-    selected_game = st.selectbox("Select a matchup to inspect all props:", ['All Games'] + list(df['matchup'].unique()))
+    selected_game = st.selectbox("Select a matchup to inspect all props:", ['All Games'] + list(df['matchup'].unique()), key="tab3_matchup_select")
     matchup_df = df if selected_game == 'All Games' else df[df['matchup'] == selected_game]
     st.dataframe(matchup_df[['player', 'team', 'stat_type', 'prop_line', 'book_odds', 'true_probability']], use_container_width=True)
 
@@ -347,7 +361,7 @@ with tab4:
         "🛡️ Model 1: High-Floor Misprice SGP (2-Leg Attack)",
         "⚡ Model 2: EV Correlated Ticket (+EV Value Accumulator)",
         "🚀 Model 3: Moonshot Ceiling Escalator (+2000 Long-Shot Ticket)"
-    ])
+    ], key="tab4_model_select")
     
     if "Model 1" in model_choice:
         st.info(f"🛡️ **High-Floor Misprice SGP ({selected_bookmaker}):** Focuses strictly on attacking book mispricings.")
@@ -371,7 +385,7 @@ with tab5:
         "Select players for ladder alt parlay:", 
         options=df['player'].tolist(), 
         default=rec_players[:2] if rec_players else df['player'].tolist()[:2],
-        key="ladder_multiselect_players"
+        key="tab5_ladder_multiselect_players"
     )
     
     if selected_alt_players:
@@ -391,7 +405,7 @@ with tab5:
                     f"Select Alt Rung ({player_name})", 
                     options=alt_choices, 
                     index=2, 
-                    key=f"alt_rung_select_{player_name}"
+                    key=f"tab5_alt_rung_select_{player_name}"
                 )
                 
                 chosen_line = float(chosen_selection.split()[0])
@@ -415,4 +429,65 @@ with tab5:
         if comp_odds.startswith("+"):
             st.success(f"🔥 **{selected_bookmaker} Ladder Ready:** Combined Odds `{comp_odds}` with a real-time cover probability of `{comp_prob:.1f}%`!")
         else:
-            st.warning
+            st.warning(f"⚠️ Combined odds are heavily favored (`{comp_odds}`).")
+    else:
+        st.info("Select players above to construct your ladder alt parlay slip.")
+
+with tab6:
+    st.subheader("🔬 5-Lens Prop Auditor & Deep-Dive Engine")
+    st.markdown("Run any player prop through our conversational **5-Lens Gauntlet** to instantly unpack the analytical breakdown and game script narrative.")
+    
+    audit_player = st.selectbox("Select Player for 5-Lens Audit:", options=df['player'].tolist(), key="tab6_audit_player_select")
+    aud_row = df[df['player'] == audit_player].iloc[0]
+    
+    col_a1, col_a2, col_a3 = st.columns(3)
+    col_a1.metric("Selected Prop", f"{aud_row['player']} ({aud_row['team']})")
+    col_a2.metric("Baseline Line", f"{aud_row['stat_type']} {aud_row['prop_line']}")
+    col_a3.metric("Model Win Prob", f"{aud_row['true_probability']*100:.1f}%")
+    
+    st.divider()
+    
+    st.markdown("### 💬 Conversational 5-Lens Breakdown")
+    st.info(aud_row['lens_summary'])
+    
+    st.divider()
+    st.success(f"**Conviction Tier & Recommendation:**\n- **Status:** {aud_row['conviction_tier']}\n- **Hit Probability:** ~{aud_row['true_probability']*100:.1f}% vs. Book Implied {aud_row['implied_prob']*100:.1f}%\n- **Execution Timing:** `[LOCK EARLY]`")
+
+with tab7:
+    st.subheader("📊 Visual Analytics, Ledgers & Hit-Rates")
+    st.markdown("Analyze visual slate trends, game total distributions, and filterable historical performance ledgers.")
+    
+    # --- Native Streamlit Visual Charts ---
+    v_col1, v_col2 = st.columns(2)
+    with v_col1:
+        st.markdown("##### 📈 Recent Game Total Points (Distribution)")
+        totals_chart_data = pd.DataFrame({
+            'Matchup': ['CHA@BOS', 'BKN@DET', 'DAL@HOU', 'LAL@GSW', 'MIA@IND', 'MIN@LAC', 'PHI@NYK', 'PHX@DEN', 'TOR@ORL', 'WAS@CHA'],
+            'Total Points': [236, 204, 227, 207, 270, 228, 191, 247, 235, 174]
+        }).set_index('Matchup')
+        st.bar_chart(totals_chart_data, color="#38bdf8")
+        
+    with v_col2:
+        st.markdown("##### 📊 Daily Game Volume Trend (October Slate)")
+        volume_chart_data = pd.DataFrame({
+            'Date': ['Oct 20', 'Oct 21', 'Oct 22', 'Oct 23', 'Oct 24', 'Oct 25', 'Oct 26', 'Oct 27', 'Oct 28', 'Oct 29', 'Oct 30', 'Oct 31'],
+            'Games': [3, 11, 2, 12, 8, 6, 6, 4, 11, 3, 10, 7]
+        }).set_index('Date')
+        st.line_chart(volume_chart_data, color="#38bdf8")
+        
+    st.divider()
+    
+    pick_sub1, pick_sub2 = st.tabs(["🎯 Individual Suggested Picks Ledger", "🎟️ Parlay Strategy Performance"])
+    
+    with pick_sub1:
+        st.markdown("### Historical Individual Engine Picks")
+        
+        f_col1, f_col2 = st.columns(2)
+        with f_col1:
+            min_date = suggested_picks_df['date'].min()
+            max_date = suggested_picks_df['date'].max()
+            date_range_picks = st.date_input(
+                "Filter Date Range (Picks):",
+                value=(min_date, max_date),
+                min_value=min_date,
+                max_value=max_date,
