@@ -298,13 +298,14 @@ with tab5:
         if sel_players:
             alt_items = []
             slip_details = []
-            for p_name in sel_players:
+            # Fixed unique widget key iteration by adding index i
+            for i, p_name in enumerate(sel_players):
                 p_row = df[df['player'] == p_name].iloc[0]
                 alt_dict = p_row['alt_options']
                 c_a, c_b = st.columns([2, 3])
                 c_a.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
                 choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
-                chosen = c_b.selectbox(f"Select Rung ({p_name})", options=choices, index=2, key=f"rung_{p_name}")
+                chosen = c_b.selectbox(f"Select Rung ({p_name})", options=choices, index=2, key=f"rung_{p_name}_{i}")
                 cline = float(chosen.split()[0])
                 codds = int(chosen.split("Odds: ")[1].replace(")", ""))
                 alt_items.append((float(p_row['live_line']), cline, float(p_row['prob']), int(codds)))
@@ -324,7 +325,7 @@ with tab6:
     if df.empty:
         st.info("No active slate for audit on this date.")
     else:
-        aud_player = st.selectbox("Select Player to Audit:", options=df['player'].tolist())
+        aud_player = st.selectbox("Select Player to Audit:", options=df['player'].tolist(), key="audit_player_select")
         arow = df[df['player'] == aud_player].iloc[0]
         c1, c2, c3 = st.columns(3)
         c1.metric("Selected Prop", f"{arow['player']} ({arow['team']})")
