@@ -175,4 +175,28 @@ def get_slate_dataframe(target_date, book_name):
                     })
 
     df = pd.DataFrame(generated_rows)
-    df['prop_line'] = 'O/U '
+    df['prop_line'] = 'O/U ' + df['live_line'].astype(str)
+    df['implied_prob'] = df['odds'].apply(odds_to_prob)
+    df['edge'] = df['prob'] - df['implied_prob']
+    df['mispriced_flag'] = np.where(df['edge'] >= 0.08, '💎 MISPRICED VALUE', 'STANDARD MARKET')
+    df['alt_options'] = [generate_multibook_alt_ladders(row['live_line'], row['odds'], row['stat_type'], book_name) for _, row in df.iterrows()]
+    return df
+
+@st.cache_data
+def get_verified_ledger():
+    return pd.DataFrame([
+        {"Date": date(2026, 10, 28), "Player": "Shai Gilgeous-Alexander", "Team": "OKC", "Prop": "Points OVER 30.5", "Closing Odds": -110, "Model Prob": "73.0%", "Actual Box Score": 32, "Result": "🟢 WON", "Units PnL": 0.91, "Brier Error": 0.0729},
+        {"Date": date(2026, 10, 30), "Player": "Tyrese Maxey", "Team": "PHI", "Prop": "Points OVER 28.5", "Closing Odds": -110, "Model Prob": "70.0%", "Actual Box Score": 27, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.4900},
+        {"Date": date(2026, 10, 31), "Player": "Domantas Sabonis", "Team": "SAC", "Prop": "Rebounds OVER 13.5", "Closing Odds": -115, "Model Prob": "72.0%", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.87, "Brier Error": 0.0784},
+        {"Date": date(2026, 11, 2), "Player": "Coby White", "Team": "CHI", "Prop": "Points OVER 11.5", "Closing Odds": -125, "Model Prob": "61.0%", "Actual Box Score": 7, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.3721},
+        {"Date": date(2026, 11, 2), "Player": "Victor Wembanyama", "Team": "SAS", "Prop": "Rebounds OVER 11.5", "Closing Odds": -122, "Model Prob": "67.0%", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.82, "Brier Error": 0.1089}
+    ])
+
+# ==========================================
+# --- SIDEBAR CONTROLS ---
+# ==========================================
+st.sidebar.header("⚙️ Engine Parameters")
+today_real = datetime.now().date()
+selected_date = st.sidebar.date_input("Select Slate Date", today_real)
+selected_book = st.sidebar.segmented_control("Bookmaker", ["DraftKings", "FanDuel", "BetMGM", "Caesars"], default="DraftKings")
+min_prob = st.sidebar.slider("Min Probability Threshold", 0.55, 0.85, 0.60, 0.01)
