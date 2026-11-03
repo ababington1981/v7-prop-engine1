@@ -89,10 +89,7 @@ OFFICIAL_SCHEDULES = {
 }
 
 def odds_to_prob(odds):
-    if odds > 0:
-        return 100.0 / (odds + 100.0)
-    else:
-        return abs(odds) / (abs(odds) + 100.0)
+    return (100.0 / (odds + 100.0)) if odds > 0 else (abs(odds) / (abs(odds) + 100.0))
 
 def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
     book_multipliers = {"DraftKings": 1.00, "FanDuel": 0.98, "BetMGM": 1.03, "Caesars": 1.05, "Bovada": 0.95}
@@ -114,10 +111,7 @@ def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
     alt_market = {}
     for offset, juice in zip(rungs, base_juices):
         rung_line = max(0.5, round((base_line + offset) * 2) / 2)
-        if juice > 0:
-            adjusted_juice = int(round(juice * (2.0 - m)))
-        else:
-            adjusted_juice = int(round(juice * m))
+        adjusted_juice = int(round(juice * (2.0 - m))) if juice > 0 else int(round(juice * m))
         alt_market[rung_line] = adjusted_juice
     return alt_market
 
@@ -130,10 +124,7 @@ def calculate_alt_parlay_metrics(items):
         line_diff = chosen_alt_line - base_line
         adjusted_prob = max(0.05, min(0.98, base_prob - (line_diff * 0.045)))
         compounded_prob *= adjusted_prob
-        if alt_odds > 0:
-            dec = (alt_odds / 100.0) + 1.0
-        else:
-            dec = (100.0 / abs(alt_odds)) + 1.0
+        dec = ((alt_odds / 100.0) + 1.0) if alt_odds > 0 else ((100.0 / abs(alt_odds)) + 1.0)
         decimal_product *= dec
     if decimal_product >= 2.0:
         american = round((decimal_product - 1.0) * 100)
@@ -143,9 +134,6 @@ def calculate_alt_parlay_metrics(items):
         american_str = str(american)
     return american_str, compounded_prob * 100.0
 
-# ==========================================
-# --- AUTOMATED DAILY SLATE & ROSTER SCANNER ---
-# ==========================================
 @st.cache_data(ttl=3600)
 def get_slate_dataframe(target_date, book_name):
     default_games = [("LAL", "GSW"), ("BOS", "NYK"), ("MIA", "DEN"), ("DAL", "PHX")]
@@ -169,11 +157,7 @@ def get_slate_dataframe(target_date, book_name):
                     continue
                     
                 for stat in ["Points", "Rebounds"]:
-                    if stat == "Points":
-                        base_val = 27.5 if player in marquee_scorers else 22.5
-                    else:
-                        base_val = 9.5 if player in marquee_rebounders else 6.5
-                        
+                    base_val = (27.5 if player in marquee_scorers else 22.5) if stat == "Points" else (9.5 if player in marquee_rebounders else 6.5)
                     odds_val = -110 + (hash(player + stat) % 15) + v
                     prob_val = round(0.58 + ((hash(player + str(target_date)) % 15) / 100.0), 2)
                     
@@ -191,39 +175,4 @@ def get_slate_dataframe(target_date, book_name):
                     })
 
     df = pd.DataFrame(generated_rows)
-    df['prop_line'] = 'O/U ' + df['live_line'].astype(str)
-    df['implied_prob'] = df['odds'].apply(odds_to_prob)
-    df['edge'] = df['prob'] - df['implied_prob']
-    df['mispriced_flag'] = np.where(df['edge'] >= 0.08, '💎 MISPRICED VALUE', 'STANDARD MARKET')
-    df['alt_options'] = [generate_multibook_alt_ladders(row['live_line'], row['odds'], row['stat_type'], book_name) for _, row in df.iterrows()]
-    return df
-
-@st.cache_data
-def get_verified_ledger():
-    return pd.DataFrame([
-        {"Date": date(2026, 10, 28), "Player": "Shai Gilgeous-Alexander", "Team": "OKC", "Prop": "Points OVER 30.5", "Closing Odds": -110, "Model Prob": "73.0%", "Actual Box Score": 32, "Result": "🟢 WON", "Units PnL": 0.91, "Brier Error": 0.0729},
-        {"Date": date(2026, 10, 30), "Player": "Tyrese Maxey", "Team": "PHI", "Prop": "Points OVER 28.5", "Closing Odds": -110, "Model Prob": "70.0%", "Actual Box Score": 27, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.4900},
-        {"Date": date(2026, 10, 31), "Player": "Domantas Sabonis", "Team": "SAC", "Prop": "Rebounds OVER 13.5", "Closing Odds": -115, "Model Prob": "72.0%", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.87, "Brier Error": 0.0784},
-        {"Date": date(2026, 11, 2), "Player": "Coby White", "Team": "CHI", "Prop": "Points OVER 11.5", "Closing Odds": -125, "Model Prob": "61.0%", "Actual Box Score": 7, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.3721},
-        {"Date": date(2026, 11, 2), "Player": "Victor Wembanyama", "Team": "SAS", "Prop": "Rebounds OVER 11.5", "Closing Odds": -122, "Model Prob": "67.0%", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.82, "Brier Error": 0.1089}
-    ])
-
-# ==========================================
-# --- SIDEBAR CONTROLS ---
-# ==========================================
-st.sidebar.header("⚙️ Engine Parameters")
-today_real = datetime.now().date()
-selected_date = st.sidebar.date_input("Select Slate Date", today_real)
-selected_book = st.sidebar.segmented_control("Bookmaker", ["DraftKings", "FanDuel", "BetMGM", "Caesars"], default="DraftKings")
-min_prob = st.sidebar.slider("Min Probability Threshold", 0.55, 0.85, 0.60, 0.01)
-show_mispriced_only = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=False)
-
-df = get_slate_dataframe(selected_date, selected_book)
-ledger_df = get_verified_ledger()
-
-st.title("🏀 AlphaProp Edge Finder+ (v8 Master Edition)")
-st.caption(f"Active Date: **{selected_date.strftime('%B %d, %Y')}** | Verified 2026-27 Rosters & Auto-Refreshing Slate Active")
-
-# ==========================================
-# --- ALL 8 TABS ---
-# =
+    df['prop_line'] = 'O/U '
