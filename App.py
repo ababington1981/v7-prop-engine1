@@ -83,6 +83,86 @@ VERIFIED_ROSTERS = {
 # --- OFFICIAL DYNAMIC GAME SCHEDULES ---
 # ==========================================
 OFFICIAL_SCHEDULES = {
-    date(2026, 11, 2): [("OKC", "CLE"), ("DET", "CHA"), ("BOS", "HOU"), ("UTA", "SAS"), ("MIA", "LAL"), ("CHI", "PHI")],
+    date(2026, 11, 2): [
+        ("OKC", "CLE"), 
+        ("DET", "CHA"), 
+        ("BOS", "HOU"), 
+        ("UTA", "SAS"), 
+        ("MIA", "LAL"), 
+        ("CHI", "PHI")
+    ],
     date(2026, 11, 3): [], # Election Day Off-Day
-    date(2026, 11, 4): [("PHI", "DET"), ("ATL", "WAS
+    date(2026, 11, 4): [
+        ("PHI", "DET"), 
+        ("ATL", "WAS"), 
+        ("MIL", "BOS"), 
+        ("CHA", "BKN"), 
+        ("CHI", "NYK"), 
+        ("CLE", "OKC"), 
+        ("IND", "MEM"), 
+        ("UTA", "NOP"), 
+        ("MIN", "HOU"), 
+        ("TOR", "DEN"), 
+        ("POR", "PHX"), 
+        ("DAL", "SAS"), 
+        ("LAL", "SAC"), 
+        ("MIA", "LAC")
+    ]
+}
+
+def odds_to_prob(odds):
+    return (100 / (odds + 100)) if odds > 0 else (abs(odds) / (abs(odds) + 100))
+
+def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
+    book_multipliers = {"DraftKings": 1.00, "FanDuel": 0.98, "BetMGM": 1.03, "Caesars": 1.05, "Bovada": 0.95}
+    m = book_multipliers.get(book_name, 1.00)
+    
+    if stat_type == 'Points':
+        rungs = [-6.0, -3.0, 0.0, +3.0, +6.0, +9.5, +14.5]
+        base_juices = [-520, -270, base_odds, +120, +235, +440, +1050]
+    elif stat_type == 'Rebounds':
+        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+        base_juices = [-460, -230, base_odds, +135, +300, +680]
+    elif stat_type == 'Assists':
+        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+        base_juices = [-490, -240, base_odds, +145, +330, +720]
+    else: 
+        rungs = [-8.0, -4.0, 0.0, +5.0, +10.0, +15.0]
+        base_juices = [-510, -255, base_odds, +130, +275, +590]
+        
+    alt_market = {}
+    for offset, juice in zip(rungs, base_juices):
+        rung_line = max(0.5, round((base_line + offset) * 2) / 2)
+        adjusted_juice = int(round(juice * (2.0 - m) if juice > 0 else juice * m))
+        alt_market[rung_line] = adjusted_juice
+    return alt_market
+
+def calculate_alt_parlay_metrics(items):
+    if not items:
+        return "+0", 0.0
+    decimal_product, compounded_prob = 1.0, 1.0
+    for base_line, chosen_alt_line, base_prob, alt_odds in items:
+        line_diff = chosen_alt_line - base_line
+        adjusted_prob = max(0.05, min(0.98, base_prob - (line_diff * 0.045)))
+        compounded_prob *= adjusted_prob
+        dec = ((alt_odds / 100.0) + 1.0) if alt_odds > 0 else ((100.0 / abs(alt_odds)) + 1.0)
+        decimal_product *= dec
+    if decimal_product >= 2.0:
+        american = round((decimal_product - 1.0) * 100)
+        american_str = f"+{american}" if american > 0 else "+100"
+    else:
+        american = round(-100.0 / (decimal_product - 1.0))
+        american_str = str(american)
+    return american_str, compounded_prob * 100
+
+# ==========================================
+# --- AUTOMATED DAILY SLATE & ROSTER SCANNER ---
+# ==========================================
+@st.cache_data(ttl=3600)
+def get_slate_dataframe(target_date, book_name):
+    games = OFFICIAL_SCHEDULES.get(target_date, [("LAL", "GSW"), ("BOS", "NYK"), ("MIA", "DEN"), ("DAL", "PHX")])
+    if not games:
+        return pd.DataFrame()
+        
+    variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5, "Bovada": -5}
+    v
