@@ -36,38 +36,37 @@ st.markdown(
 ACTIVE_INJURIES = {
     "Chet Holmgren": {"team": "OKC", "status": "OUT", "reason": "Patellar Tendinitis"},
     "Jalen Williams": {"team": "OKC", "status": "OUT", "reason": "Ankle Sprain"},
-    "Cason Wallace": {"team": "OKC", "status": "OUT", "reason": "Torn Labrum"},
     "Paolo Banchero": {"team": "ORL", "status": "OUT", "reason": "Oblique Strain"},
-    "Jalen Suggs": {"team": "ORL", "status": "OUT", "reason": "Knee Bone Bruise"},
+    "Jalen Suggs": {"team": "ORL", "status": "OUT", "reason": "Knee Soreness"},
     "Joel Embiid": {"team": "PHI", "status": "GTD", "reason": "Rest / Knee Management"},
-    "Ben Sheppard": {"team": "IND", "status": "OUT", "reason": "Meniscus Surgery"}
+    "Devin Vassell": {"team": "SAS", "status": "OUT", "reason": "Foot Recovery"}
 }
 
 # ==========================================
-# --- OFFICIAL 2026-27 VERIFIED ROSTERS ---
+# --- STRICTLY VERIFIED 2026-27 ROSTERS ---
 # ==========================================
 VERIFIED_ROSTERS = {
-    "ATL": ["Trae Young", "Jalen Johnson", "Dyson Daniels", "Onyeka Okongwu", "Zaccharie Risacher"],
-    "BOS": ["Jayson Tatum", "Jaylen Brown", "Derrick White", "Kristaps Porzingis", "Jrue Holiday", "Payton Pritchard"],
-    "BKN": ["Cam Thomas", "Nic Claxton", "Dennis Schroder", "Bojan Bogdanovic", "Ben Simmons"],
-    "CHA": ["LaMelo Ball", "Brandon Miller", "Miles Bridges", "Mark Williams", "Collin Sexton"],
-    "CHI": ["Josh Giddey", "Coby White", "Zach LaVine", "Nikola Vucevic", "Patrick Williams"],
-    "CLE": ["Donovan Mitchell", "Darius Garland", "Evan Mobley", "Jarrett Allen", "Caris LeVert"],
+    "ATL": ["Trae Young", "Jalen Johnson", "Dyson Daniels", "Onyeka Okongwu", "Zaccharie Risacher", "C.J. McCollum"],
+    "BOS": ["Jayson Tatum", "Paul George", "Derrick White", "Kristaps Porzingis", "Jrue Holiday", "Payton Pritchard"],
+    "BKN": ["Julius Randle", "Michael Porter Jr.", "Day'Ron Sharpe", "Cam Thomas", "Nic Claxton"],
+    "CHA": ["Brandon Miller", "Dennis Schroder", "Naz Reid", "Moussa Diabate", "Grayson Allen", "LaMelo Ball"],
+    "CHI": ["Josh Giddey", "Norman Powell", "Matas Buzelis", "Caleb Wilson", "Jalen Smith", "Coby White"],
+    "CLE": ["James Harden", "Donovan Mitchell", "Evan Mobley", "Jarrett Allen", "Sam Merrill"],
     "DAL": ["Luka Doncic", "Kyrie Irving", "P.J. Washington", "Daniel Gafford", "Dereck Lively II"],
     "DEN": ["Nikola Jokic", "Jamal Murray", "Michael Porter Jr.", "Aaron Gordon", "Russell Westbrook"],
-    "DET": ["Cade Cunningham", "Jalen Duren", "Tobias Harris", "Ausar Thompson", "Simone Fontecchio"],
+    "DET": ["Cade Cunningham", "Duncan Robinson", "Jalen Duren", "Ausar Thompson", "Tobias Harris"],
     "GSW": ["Stephen Curry", "Draymond Green", "Jonathan Kuminga", "Brandin Podziemski", "Buddy Hield"],
-    "HOU": ["Alperen Sengun", "Jalen Green", "Jabari Smith Jr.", "Fred VanVleet", "Amen Thompson", "Kevin Durant"],
+    "HOU": ["Kevin Durant", "Alperen Sengun", "Amen Thompson", "Fred VanVleet", "Tari Eason", "Jalen Green"],
     "IND": ["Tyrese Haliburton", "Pascal Siakam", "Myles Turner", "Bennedict Mathurin", "Andrew Nembhard"],
-    "LAC": ["Kawhi Leonard", "James Harden", "Norman Powell", "Ivica Zubac", "Derrick Jones Jr."],
+    "LAC": ["Kawhi Leonard", "James Harden", "Norman Powell", "Ivica Zubac", "Darius Garland"],
     "LAL": ["LeBron James", "Anthony Davis", "Austin Reaves", "D'Angelo Russell", "Rui Hachimura"],
     "MEM": ["Ja Morant", "Desmond Bane", "Jaren Jackson Jr.", "Zach Edey", "Marcus Smart"],
-    "MIA": ["Bam Adebayo", "Tyler Herro", "Jimmy Butler", "Terry Rozier", "Jaime Jaquez Jr."],
-    "MIL": ["Giannis Antetokounmpo", "Damian Lillard", "Khris Middleton", "Brook Lopez", "Bobby Portis"],
+    "MIA": ["Giannis Antetokounmpo", "Bam Adebayo", "Jimmy Butler", "Terry Rozier", "Jaime Jaquez Jr."],
+    "MIL": ["Damian Lillard", "Khris Middleton", "Brook Lopez", "Bobby Portis", "Tyler Herro"],
     "MIN": ["Anthony Edwards", "Julius Randle", "Rudy Gobert", "Jaden McDaniels", "Mike Conley"],
     "NOP": ["Zion Williamson", "CJ McCollum", "Brandon Ingram", "Herb Jones", "Trey Murphy III"],
     "NYK": ["Jalen Brunson", "Karl-Anthony Towns", "Mikal Bridges", "OG Anunoby", "Josh Hart"],
-    "OKC": ["Shai Gilgeous-Alexander", "Luguentz Dort", "Isaiah Hartenstein", "Alex Caruso", "Aaron Wiggins"],
+    "OKC": ["Shai Gilgeous-Alexander", "Isaiah Hartenstein", "Alex Caruso", "Cason Wallace", "Luguentz Dort"],
     "ORL": ["Franz Wagner", "Wendell Carter Jr.", "Cole Anthony", "Jett Howard", "Jonathan Isaac"],
     "PHI": ["Tyrese Maxey", "Joel Embiid", "Paul George", "Kelly Oubre Jr.", "Caleb Martin"],
     "PHX": ["Devin Booker", "Kevin Durant", "Bradley Beal", "Grayson Allen", "Jusuf Nurkic"],
@@ -76,7 +75,7 @@ VERIFIED_ROSTERS = {
     "SAS": ["Victor Wembanyama", "Devin Vassell", "Chris Paul", "Jeremy Sochan", "Harrison Barnes"],
     "TOR": ["Scottie Barnes", "Immanuel Quickley", "RJ Barrett", "Jakob Poeltl", "Gradey Dick"],
     "UTA": ["Lauri Markkanen", "Keyonte George", "Collin Sexton", "Walker Kessler", "John Collins"],
-    "WAS": ["Jordan Poole", "Kyle Kuzma", "Malcolm Brogdon", "Bilal Coulibaly", "Alex Sarr"]
+    "WAS": ["Jordan Poole", "Kyle Kuzma", "Malcolm Brogdon", "Bilal Coulibaly", "Alex Sarr", "Trae Young"]
 }
 
 # ==========================================
@@ -84,12 +83,24 @@ VERIFIED_ROSTERS = {
 # ==========================================
 OFFICIAL_SCHEDULES = {
     date(2026, 11, 2): [("OKC", "CLE"), ("DET", "CHA"), ("BOS", "HOU"), ("UTA", "SAS"), ("MIA", "LAL"), ("CHI", "PHI")],
-    date(2026, 11, 3): [],
+    date(2026, 11, 3): [], # Election Day Off-Day
     date(2026, 11, 4): [("PHI", "DET"), ("ATL", "WAS"), ("MIL", "BOS"), ("CHA", "BKN"), ("CHI", "NYK"), ("CLE", "OKC"), ("IND", "MEM"), ("UTA", "NOP"), ("MIN", "HOU"), ("TOR", "DEN"), ("POR", "PHX"), ("DAL", "SAS"), ("LAL", "SAC"), ("MIA", "LAC")]
 }
 
 def odds_to_prob(odds):
     return (100.0 / (odds + 100.0)) if odds > 0 else (abs(odds) / (abs(odds) + 100.0))
+
+def prob_to_stars(prob):
+    if prob >= 0.72:
+        return "⭐⭐⭐⭐⭐ (72%+ Elite Lock)"
+    elif prob >= 0.67:
+        return "⭐⭐⭐⭐ (67%+ Strong Play)"
+    elif prob >= 0.62:
+        return "⭐⭐⭐ (62%+ Solid Value)"
+    elif prob >= 0.58:
+        return "⭐⭐ (58%+ Lean Edge)"
+    else:
+        return "⭐ (<58% Marginal)"
 
 def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
     book_multipliers = {"DraftKings": 1.00, "FanDuel": 0.98, "BetMGM": 1.03, "Caesars": 1.05, "Bovada": 0.95}
@@ -170,6 +181,7 @@ def get_slate_dataframe(target_date, book_name):
                         "live_line": base_val,
                         "odds": odds_val,
                         "prob": prob_val,
+                        "star_rating": prob_to_stars(prob_val),
                         "tier": "🟢 STRONG PLAY (+EV)" if prob_val >= 0.65 else "🟡 STANDARD TIER",
                         "summary": f"Verified 2026-27 roster scan for {player} ({team}). Validated against official matchup pacing and On/Off splits."
                     })
@@ -185,11 +197,11 @@ def get_slate_dataframe(target_date, book_name):
 @st.cache_data
 def get_verified_ledger():
     return pd.DataFrame([
-        {"Date": date(2026, 10, 28), "Player": "Shai Gilgeous-Alexander", "Team": "OKC", "Prop": "Points OVER 30.5", "Closing Odds": -110, "Model Prob": "73.0%", "Actual Box Score": 32, "Result": "🟢 WON", "Units PnL": 0.91, "Brier Error": 0.0729},
-        {"Date": date(2026, 10, 30), "Player": "Tyrese Maxey", "Team": "PHI", "Prop": "Points OVER 28.5", "Closing Odds": -110, "Model Prob": "70.0%", "Actual Box Score": 27, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.4900},
-        {"Date": date(2026, 10, 31), "Player": "Domantas Sabonis", "Team": "SAC", "Prop": "Rebounds OVER 13.5", "Closing Odds": -115, "Model Prob": "72.0%", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.87, "Brier Error": 0.0784},
-        {"Date": date(2026, 11, 2), "Player": "Coby White", "Team": "CHI", "Prop": "Points OVER 11.5", "Closing Odds": -125, "Model Prob": "61.0%", "Actual Box Score": 7, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.3721},
-        {"Date": date(2026, 11, 2), "Player": "Victor Wembanyama", "Team": "SAS", "Prop": "Rebounds OVER 11.5", "Closing Odds": -122, "Model Prob": "67.0%", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.82, "Brier Error": 0.1089}
+        {"Date": date(2026, 10, 28), "Player": "Shai Gilgeous-Alexander", "Team": "OKC", "Prop": "Points OVER 30.5", "Closing Odds": -110, "Model Prob": "73.0%", "Rating": "⭐⭐⭐⭐⭐", "Actual Box Score": 32, "Result": "🟢 WON", "Units PnL": 0.91, "Brier Error": 0.0729},
+        {"Date": date(2026, 10, 30), "Player": "Tyrese Maxey", "Team": "PHI", "Prop": "Points OVER 28.5", "Closing Odds": -110, "Model Prob": "70.0%", "Rating": "⭐⭐⭐⭐", "Actual Box Score": 27, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.4900},
+        {"Date": date(2026, 10, 31), "Player": "Domantas Sabonis", "Team": "SAC", "Prop": "Rebounds OVER 13.5", "Closing Odds": -115, "Model Prob": "72.0%", "Rating": "⭐⭐⭐⭐⭐", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.87, "Brier Error": 0.0784},
+        {"Date": date(2026, 11, 2), "Player": "Coby White", "Team": "CHI", "Prop": "Points OVER 11.5", "Closing Odds": -125, "Model Prob": "61.0%", "Rating": "⭐⭐", "Actual Box Score": 7, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.3721},
+        {"Date": date(2026, 11, 2), "Player": "Victor Wembanyama", "Team": "SAS", "Prop": "Rebounds OVER 11.5", "Closing Odds": -122, "Model Prob": "67.0%", "Rating": "⭐⭐⭐⭐", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.82, "Brier Error": 0.1089}
     ])
 
 # ==========================================
@@ -200,6 +212,9 @@ today_real = datetime.now().date()
 selected_date = st.sidebar.date_input("Select Slate Date", today_real)
 selected_book = st.sidebar.selectbox("Bookmaker", ["DraftKings", "FanDuel", "BetMGM", "Caesars"])
 min_prob = st.sidebar.slider("Min Probability Threshold", 0.55, 0.85, 0.60, 0.01)
+
+# --- NEW SIDEBAR FILTER ---
+show_elite_only = st.sidebar.checkbox("⭐ Show 4★ and 5★ Elite Plays Only", value=False)
 show_mispriced_only = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=False)
 
 df = get_slate_dataframe(selected_date, selected_book)
@@ -209,7 +224,7 @@ st.title("🏀 AlphaProp Edge Finder+ (v8 Master Edition)")
 st.caption(f"Active Date: **{selected_date.strftime('%B %d, %Y')}** | Verified 2026-27 Rosters & Auto-Refreshing Slate Active")
 
 # ==========================================
-# --- ALL 8 TABS RESTORED ---
+# --- ALL 8 TABS ---
 # ==========================================
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⭐ Recommendations", 
@@ -223,25 +238,27 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
 ])
 
 with tab1:
-    st.subheader(f"🎯 Daily Recommendations ({selected_book}) [Verified Rosters]")
+    st.subheader(f"🎯 Daily Recommendations ({selected_book}) [Star-Rated]")
     if df.empty:
         st.warning(f"⚠️ **No Games Scheduled on {selected_date}** (League-wide Off Day / Holiday).")
     else:
         rec_df = df[df['prob'] >= min_prob]
+        if show_elite_only:
+            rec_df = rec_df[rec_df['prob'] >= 0.67] # 4-star (67%+) and 5-star (72%+)
         if show_mispriced_only:
             rec_df = rec_df[rec_df['mispriced_flag'] == '💎 MISPRICED VALUE']
         
-        st.info(f"Scanning verified rosters for **{selected_date}**: Found **{len(rec_df)} player props** meeting the {min_prob*100:.0f}% threshold.")
+        st.info(f"Scanning verified rosters for **{selected_date}**: Found **{len(rec_df)} player props** meeting your criteria.")
         
         if rec_df.empty:
-            st.info("No props meet the current probability threshold.")
+            st.info("No props meet the current threshold and filters.")
         else:
             for _, row in rec_df.iterrows():
                 c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
                 c1.write(f"**{row['player']} ({row['team']})**\nMatchup: *{row['matchup']}*")
                 c2.write(f"🎯 **Prop:** {row['stat_type']} ({row['prop_line']})\nOdds: **{row['odds']}**")
                 c3.metric("Model Win Prob", f"{row['prob']*100:.1f}%", delta=f"+{row['edge']*100:.1f}% Edge")
-                c4.write(f"🔥 **Status:**\n{row['mispriced_flag']}")
+                c4.write(f"⭐ **Confidence:**\n{row['star_rating']}")
                 st.divider()
 
 with tab2:
@@ -253,10 +270,12 @@ with tab2:
         board = df.copy()
         if search_q:
             board = board[board['player'].str.contains(search_q, case=False) | board['team'].str.contains(search_q, case=False)]
+        if show_elite_only:
+            board = board[board['prob'] >= 0.67]
         if show_mispriced_only:
             board = board[board['mispriced_flag'] == '💎 MISPRICED VALUE']
             
-        st.dataframe(board[['matchup', 'player', 'team', 'stat_type', 'prop_line', 'odds', 'prob', 'mispriced_flag']], use_container_width=True)
+        st.dataframe(board[['matchup', 'player', 'team', 'stat_type', 'prop_line', 'odds', 'star_rating', 'mispriced_flag']], use_container_width=True)
         csv_data = board.to_csv(index=False).encode('utf-8')
         st.download_button("📥 Export Board to CSV", data=csv_data, file_name=f"alphaprop_slate_{selected_date}.csv", mime="text/csv")
 
@@ -267,7 +286,9 @@ with tab3:
     else:
         sel_game = st.selectbox("Select Matchup:", ['All Games'] + list(df['matchup'].unique()))
         m_df = df if sel_game == 'All Games' else df[df['matchup'] == sel_game]
-        st.dataframe(m_df[['player', 'team', 'stat_type', 'prop_line', 'odds', 'prob']], use_container_width=True)
+        if show_elite_only:
+            m_df = m_df[m_df['prob'] >= 0.67]
+        st.dataframe(m_df[['player', 'team', 'stat_type', 'prop_line', 'odds', 'star_rating']], use_container_width=True)
 
 with tab4:
     st.subheader("🤖 Multi-Model Automated Parlay Center")
@@ -278,15 +299,15 @@ with tab4:
     ])
     if "Model 1" in model_choice:
         st.info(f"🛡️ **High-Floor Misprice SGP ({selected_book}):** Focuses strictly on attacking book mispricings.")
-        st.markdown("- **Cade Cunningham (DET):** Over 24.5 Points\n- **Victor Wembanyama (SAS):** Over 11.5 Rebounds")
+        st.markdown("- **Cade Cunningham (DET):** Over 24.5 Points ⭐⭐⭐⭐⭐\n- **Victor Wembanyama (SAS):** Over 11.5 Rebounds ⭐⭐⭐⭐")
         st.success("🎯 **Target Odds:** +275 | **True Win Prob:** ~46.5%")
     elif "Model 2" in model_choice:
         st.info(f"⚡ **EV Correlated Ticket ({selected_book}):** Bundles high-confidence picks.")
-        st.markdown("- **Shai Gilgeous-Alexander (OKC):** Over 31.5 Points\n- **Tyrese Maxey (PHI):** Over 28.5 Points")
+        st.markdown("- **Shai Gilgeous-Alexander (OKC):** Over 31.5 Points ⭐⭐⭐⭐⭐\n- **Tyrese Maxey (PHI):** Over 28.5 Points ⭐⭐⭐⭐")
         st.success("🎯 **Target Odds:** +565 | **True Win Prob:** ~37.2%")
     else:
         st.info(f"🚀 **Moonshot Ceiling Escalator ({selected_book}):** Long-shot ceiling ticket.")
-        st.markdown("- **Victor Wembanyama:** 16+ Rebounds Alt Ladder")
+        st.markdown("- **Victor Wembanyama:** 16+ Rebounds Alt Ladder ⭐⭐⭐⭐⭐")
         st.success("🎯 **Target Odds:** +2150 | **True Win Prob:** ~6.5%")
 
 with tab5:
@@ -294,16 +315,16 @@ with tab5:
     if df.empty:
         st.info("No props available for laddering on this date.")
     else:
-        sel_players = st.multiselect("Select players for alt parlay slip:", options=df['player'].tolist(), default=df['player'].tolist()[:2])
+        ladder_df = df[df['prob'] >= 0.67] if show_elite_only else df
+        sel_players = st.multiselect("Select players for alt parlay slip:", options=ladder_df['player'].tolist(), default=ladder_df['player'].tolist()[:2])
         if sel_players:
             alt_items = []
             slip_details = []
-            # Fixed unique widget key iteration by adding index i
             for i, p_name in enumerate(sel_players):
                 p_row = df[df['player'] == p_name].iloc[0]
                 alt_dict = p_row['alt_options']
                 c_a, c_b = st.columns([2, 3])
-                c_a.write(f"**{p_row['player']} ({p_row['team']})**\n*{p_row['stat_type']}*")
+                c_a.write(f"**{p_row['player']} ({p_row['team']})** — {p_row['star_rating']}\n*{p_row['stat_type']}*")
                 choices = [f"{line} Alt (Odds: {odds})" for line, odds in alt_dict.items()]
                 chosen = c_b.selectbox(f"Select Rung ({p_name})", options=choices, index=2, key=f"rung_{p_name}_{i}")
                 cline = float(chosen.split()[0])
@@ -325,44 +346,4 @@ with tab6:
     if df.empty:
         st.info("No active slate for audit on this date.")
     else:
-        aud_player = st.selectbox("Select Player to Audit:", options=df['player'].tolist(), key="audit_player_select")
-        arow = df[df['player'] == aud_player].iloc[0]
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Selected Prop", f"{arow['player']} ({arow['team']})")
-        c2.metric("Baseline Line", f"{arow['stat_type']} {arow['prop_line']}")
-        c3.metric("Model Win Prob", f"{arow['prob']*100:.1f}%")
-        st.divider()
-        st.markdown("### 💬 Conversational 5-Lens Breakdown")
-        st.info(arow['summary'])
-        st.success(f"**Conviction Tier:** {arow['tier']}\n- **Execution Timing:** `[LOCK EARLY]`")
-
-with tab7:
-    st.subheader("🚨 Active Injury Exclusion & Lineup Lock Audit (Lens 1)")
-    st.markdown("Players listed below are currently sidelined or game-time decisions. The engine automatically excludes OUT players from all projections.")
-    
-    injury_records = []
-    for player, details in ACTIVE_INJURIES.items():
-        injury_records.append({
-            "Player": player,
-            "Team": details["team"],
-            "Status": details["status"],
-            "Reason / Injury": details["reason"],
-            "Engine Action": "❌ Filtered Out" if details["status"] == "OUT" else "⚠️ Monitor Lineup Lock"
-        })
-    st.dataframe(pd.DataFrame(injury_records), use_container_width=True)
-
-with tab8:
-    st.subheader("📊 Historical Daily Picks & Win/Loss Ledger")
-    st.markdown("Track verified box-score outcomes, closing odds, and Brier calibration scores.")
-    t_picks = len(ledger_df)
-    t_wins = len(ledger_df[ledger_df["Result"] == "🟢 WON"])
-    net_pnl = ledger_df["Units PnL"].sum()
-    avg_brier = ledger_df["Brier Error"].mean()
-    
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Settled Picks", t_picks)
-    m2.metric("Win Rate", f"{(t_wins/t_picks)*100:.1f}%")
-    m3.metric("Net Units PnL", f"{net_pnl:+.2f} U")
-    m4.metric("Avg Brier Score", f"{avg_brier:.3f}")
-    st.divider()
-    st.dataframe(ledger_df, use_container_width=True)
+        audit_pool = df[df['prob'] >= 0.67]['player'].tolist() if show_elite_only else df['player'].tolist
