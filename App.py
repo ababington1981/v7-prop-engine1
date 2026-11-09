@@ -1,496 +1,238 @@
-import streamlit as st
-import pandas as pd
+from datetime import datetime
+import math
+import time
 import numpy as np
-import json
-from datetime import datetime, date
+import pandas as pd
+import streamlit as st
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="AlphaProp Edge Finder+",
+    page_title="AlphaProp Edge Finder+ (v8 Master Edition)",
     page_icon="🏀",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # --- Polished Deep Slate & Modern Dark Mode Aesthetic ---
 st.markdown(
     """
     <style>
-        .stApp { background-color: #090d16; color: #f8fafc; }
-        [data-testid="stSidebar"] { background-color: #111827; border-right: 1px solid #1f2937; }
-        [data-testid="stMetric"] { background-color: #111827; border: 1px solid #1f2937; padding: 16px; border-radius: 10px; }
-        [data-testid="stMetricValue"] { color: #38bdf8 !important; font-weight: 800; font-size: 1.8rem !important; }
-        .stTabs [data-baseweb="tab-list"] { gap: 6px; background-color: #090d16; padding: 4px; }
-        .stTabs [data-baseweb="tab"] { background-color: #111827; border-radius: 8px; color: #94a3b8; font-weight: 600; padding: 8px 12px; border: 1px solid #1f2937; }
-        .stTabs [aria-selected="true"] { background-color: #38bdf8 !important; color: #0e1626 !important; font-weight: 800; border: 1px solid #38bdf8 !important; }
-        .stButton>button { background-color: #38bdf8; color: #0e1626; font-weight: 800; border-radius: 8px; border: none; padding: 0.5rem 1rem; }
-        [data-testid="stDataFrame"] { border: 1px solid #1f2937; border-radius: 8px; background-color: #111827; }
+        .stApp {
+            background-color: #090d16;
+            color: #f8fafc;
+        }
+        [data-testid="stSidebar"] {
+            background-color: #111827;
+            border-right: 1px solid #1f2937;
+        }
+        [data-testid="stMetric"] {
+            background-color: #111827;
+            border: 1px solid #1f2937;
+            padding: 16px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        [data-testid="stMetricValue"] {
+            color: #38bdf8 !important;
+            font-weight: 800;
+            font-size: 1.8rem !important;
+        }
+        [data-testid="stMetricLabel"] {
+            color: #94a3b8 !important;
+            font-weight: 600;
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 6px;
+            background-color: #090d16;
+            padding: 4px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            background-color: #111827;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-weight: 600;
+            padding: 8px 12px;
+            border: 1px solid #1f2937;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #38bdf8 !important;
+            color: #0e1626 !important;
+            font-weight: 800;
+            border: 1px solid #38bdf8 !important;
+        }
+        .stButton>button, .stDownloadButton>button {
+            background-color: #38bdf8;
+            color: #0e1626;
+            font-weight: 800;
+            border-radius: 8px;
+            border: none;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .stButton>button:hover, .stDownloadButton>button:hover {
+            background-color: #0ea5e9;
+            color: #0e1626;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+        }
+        [data-testid="stDataFrame"] {
+            border: 1px solid #1f2937;
+            border-radius: 8px;
+            background-color: #111827;
+        }
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 # ==========================================
-# --- DEFAULT TEAM EPM JSON CONFIGURATION ---
+# --- CORE v8 QUANTITATIVE ENGINE FUNCTIONS ---
 # ==========================================
-DEFAULT_TEAM_EPM_JSON = {
-    "metadata": {
-        "season": "2025-26",
-        "last_updated": "2026-11-04",
-        "description": "Team-level EPM ratings, offensive/defensive multipliers, and rolling location-based Net Rating splits."
-    },
-    "teams": {
-        "OKC": {"team_name": "Oklahoma City Thunder", "off_epm": 6.8, "def_epm": -4.3, "net_epm": 11.1, "home_net_l10": 11.5, "road_net_l10": 9.8},
-        "SAS": {"team_name": "San Antonio Spurs", "off_epm": 5.2, "def_epm": -3.1, "net_epm": 8.3, "home_net_l10": 9.2, "road_net_l10": 7.1},
-        "DET": {"team_name": "Detroit Pistons", "off_epm": 4.5, "def_epm": -3.7, "net_epm": 8.2, "home_net_l10": 8.9, "road_net_l10": 7.4},
-        "BOS": {"team_name": "Boston Celtics", "off_epm": 5.9, "def_epm": -2.2, "net_epm": 8.1, "home_net_l10": 9.4, "road_net_l10": 6.8},
-        "NYK": {"team_name": "New York Knicks", "off_epm": 4.1, "def_epm": -2.4, "net_epm": 6.5, "home_net_l10": 7.2, "road_net_l10": 5.8},
-        "HOU": {"team_name": "Houston Rockets", "off_epm": 3.2, "def_epm": -2.2, "net_epm": 5.4, "home_net_l10": 6.1, "road_net_l10": 4.7},
-        "DEN": {"team_name": "Denver Nuggets", "off_epm": 7.1, "def_epm": -1.9, "net_epm": 5.2, "home_net_l10": 7.8, "road_net_l10": 3.2},
-        "CHA": {"team_name": "Charlotte Hornets", "off_epm": 3.8, "def_epm": 1.2, "net_epm": 5.0, "home_net_l10": 5.5, "road_net_l10": 4.2},
-        "CLE": {"team_name": "Cleveland Cavaliers", "off_epm": 3.5, "def_epm": 0.6, "net_epm": 4.1, "home_net_l10": 4.8, "road_net_l10": 3.4},
-        "MIN": {"team_name": "Minnesota Timberwolves", "off_epm": 1.9, "def_epm": -1.4, "net_epm": 3.3, "home_net_l10": 4.1, "road_net_l10": 2.5},
-        "TOR": {"team_name": "Toronto Raptors", "off_epm": 1.2, "def_epm": -1.7, "net_epm": 2.9, "home_net_l10": 3.5, "road_net_l10": 2.1},
-        "ATL": {"team_name": "Atlanta Hawks", "off_epm": 2.5, "def_epm": -0.1, "net_epm": 2.4, "home_net_l10": 3.0, "road_net_l10": 1.8},
-        "MIA": {"team_name": "Miami Heat", "off_epm": 2.1, "def_epm": -0.1, "net_epm": 2.2, "home_net_l10": 2.8, "road_net_l10": 1.6},
-        "LAL": {"team_name": "Los Angeles Lakers", "off_epm": 3.1, "def_epm": -1.3, "net_epm": 1.8, "home_net_l10": 2.4, "road_net_l10": 1.2},
-        "ORL": {"team_name": "Orlando Magic", "off_epm": -0.4, "def_epm": -1.0, "net_epm": 0.6, "home_net_l10": 1.2, "road_net_l10": 0.1},
-        "PHI": {"team_name": "Philadelphia 76ers", "off_epm": -0.2, "def_epm": 0.0, "net_epm": -0.2, "home_net_l10": 0.5, "road_net_l10": -0.9},
-        "CHI": {"team_name": "Chicago Bulls", "off_epm": -2.1, "def_epm": 3.0, "net_epm": -5.1, "home_net_l10": -4.2, "road_net_l10": -6.0},
-        "WAS": {"team_name": "Washington Wizards", "off_epm": -3.5, "def_epm": 8.3, "net_epm": -11.8, "home_net_l10": -10.5, "road_net_l10": -13.1},
-        "GSW": {"team_name": "Golden State Warriors", "off_epm": 4.2, "def_epm": -1.8, "net_epm": 6.0, "home_net_l10": 6.8, "road_net_l10": 5.2},
-        "PHX": {"team_name": "Phoenix Suns", "off_epm": 4.8, "def_epm": -0.5, "net_epm": 4.3, "home_net_l10": 5.1, "road_net_l10": 3.9},
-        "IND": {"team_name": "Indiana Pacers", "off_epm": 5.0, "def_epm": -0.8, "net_epm": 4.2, "home_net_l10": 5.8, "road_net_l10": 3.5},
-        "MEM": {"team_name": "Memphis Grizzlies", "off_epm": 3.6, "def_epm": -2.0, "net_epm": 5.6, "home_net_l10": 6.2, "road_net_l10": 4.5},
-        "NOP": {"team_name": "New Orleans Pelicans", "off_epm": 2.2, "def_epm": -0.4, "net_epm": 1.8, "home_net_l10": 2.5, "road_net_l10": 1.1},
-        "POR": {"team_name": "Portland Trail Blazers", "off_epm": -1.5, "def_epm": 2.1, "net_epm": -3.6, "home_net_l10": -2.8, "road_net_l10": -4.5},
-        "SAC": {"team_name": "Sacramento Kings", "off_epm": 3.4, "def_epm": 0.2, "net_epm": 3.2, "home_net_l10": 4.0, "road_net_l10": 2.4},
-        "UTA": {"team_name": "Utah Jazz", "off_epm": -1.8, "def_epm": 3.5, "net_epm": -5.3, "home_net_l10": -4.1, "road_net_l10": -6.8},
-        "BRK": {"team_name": "Brooklyn Nets", "off_epm": -0.8, "def_epm": 1.5, "net_epm": -2.3, "home_net_l10": -1.5, "road_net_l10": -3.2},
-        "LAC": {"team_name": "Los Angeles Clippers", "off_epm": 3.0, "def_epm": -1.5, "net_epm": 4.5, "home_net_l10": 5.2, "road_net_l10": 3.8}
-    }
-}
 
-# ==========================================
-# --- INJURY EXCLUSION DATABASE (Lens 1) ---
-# ==========================================
-ACTIVE_INJURIES = {
-    "Chet Holmgren": {"team": "OKC", "status": "OUT", "reason": "Patellar Tendinitis"},
-    "Jalen Williams": {"team": "OKC", "status": "OUT", "reason": "Ankle Sprain"},
-    "Paolo Banchero": {"team": "ORL", "status": "OUT", "reason": "Oblique Strain"},
-    "Jalen Suggs": {"team": "ORL", "status": "OUT", "reason": "Knee Soreness"},
-    "Joel Embiid": {"team": "PHI", "status": "GTD", "reason": "Rest / Knee Management"},
-    "Devin Vassell": {"team": "SAS", "status": "OUT", "reason": "Foot Recovery"}
-}
-
-# ==========================================
-# --- STRICTLY VERIFIED 2026-27 ROSTERS ---
-# ==========================================
-VERIFIED_ROSTERS = {
-    "ATL": ["Trae Young", "Jalen Johnson", "Dyson Daniels", "Onyeka Okongwu", "Zaccharie Risacher", "C.J. McCollum"],
-    "BOS": ["Jayson Tatum", "Paul George", "Derrick White", "Kristaps Porzingis", "Jrue Holiday", "Payton Pritchard"],
-    "BKN": ["Julius Randle", "Michael Porter Jr.", "Day'Ron Sharpe", "Cam Thomas", "Nic Claxton"],
-    "CHA": ["Brandon Miller", "Dennis Schroder", "Naz Reid", "Moussa Diabate", "Grayson Allen", "LaMelo Ball"],
-    "CHI": ["Josh Giddey", "Norman Powell", "Matas Buzelis", "Caleb Wilson", "Jalen Smith", "Coby White"],
-    "CLE": ["James Harden", "Donovan Mitchell", "Evan Mobley", "Jarrett Allen", "Sam Merrill"],
-    "DAL": ["Luka Doncic", "Kyrie Irving", "P.J. Washington", "Daniel Gafford", "Dereck Lively II"],
-    "DEN": ["Nikola Jokic", "Jamal Murray", "Michael Porter Jr.", "Aaron Gordon", "Russell Westbrook"],
-    "DET": ["Cade Cunningham", "Duncan Robinson", "Jalen Duren", "Ausar Thompson", "Tobias Harris"],
-    "GSW": ["Stephen Curry", "Draymond Green", "Jonathan Kuminga", "Brandin Podziemski", "Buddy Hield"],
-    "HOU": ["Kevin Durant", "Alperen Sengun", "Amen Thompson", "Fred VanVleet", "Tari Eason", "Jalen Green"],
-    "IND": ["Tyrese Haliburton", "Pascal Siakam", "Myles Turner", "Bennedict Mathurin", "Andrew Nembhard"],
-    "LAC": ["Kawhi Leonard", "James Harden", "Norman Powell", "Ivica Zubac", "Darius Garland"],
-    "LAL": ["LeBron James", "Anthony Davis", "Austin Reaves", "D'Angelo Russell", "Rui Hachimura"],
-    "MEM": ["Ja Morant", "Desmond Bane", "Jaren Jackson Jr.", "Zach Edey", "Marcus Smart"],
-    "MIA": ["Giannis Antetokounmpo", "Bam Adebayo", "Jimmy Butler", "Terry Rozier", "Jaime Jaquez Jr."],
-    "MIL": ["Damian Lillard", "Khris Middleton", "Brook Lopez", "Bobby Portis", "Tyler Herro"],
-    "MIN": ["Anthony Edwards", "Julius Randle", "Rudy Gobert", "Jaden McDaniels", "Mike Conley"],
-    "NOP": ["Zion Williamson", "CJ McCollum", "Brandon Ingram", "Herb Jones", "Trey Murphy III"],
-    "NYK": ["Jalen Brunson", "Karl-Anthony Towns", "Mikal Bridges", "OG Anunoby", "Josh Hart"],
-    "OKC": ["Shai Gilgeous-Alexander", "Isaiah Hartenstein", "Alex Caruso", "Cason Wallace", "Luguentz Dort"],
-    "ORL": ["Franz Wagner", "Wendell Carter Jr.", "Cole Anthony", "Jett Howard", "Jonathan Isaac"],
-    "PHI": ["Tyrese Maxey", "Joel Embiid", "Paul George", "Kelly Oubre Jr.", "Caleb Martin"],
-    "PHX": ["Devin Booker", "Kevin Durant", "Bradley Beal", "Grayson Allen", "Jusuf Nurkic"],
-    "POR": ["Anfernee Simons", "Scoot Henderson", "Shaedon Sharpe", "Deni Avdija", "Deandre Ayton"],
-    "SAC": ["De'Aaron Fox", "Domantas Sabonis", "DeMar DeRozan", "Keegan Murray", "Kevin Huerter"],
-    "SAS": ["Victor Wembanyama", "Devin Vassell", "Chris Paul", "Jeremy Sochan", "Harrison Barnes"],
-    "TOR": ["Scottie Barnes", "Immanuel Quickley", "RJ Barrett", "Jakob Poeltl", "Gradey Dick"],
-    "UTA": ["Lauri Markkanen", "Keyonte George", "Collin Sexton", "Walker Kessler", "John Collins"],
-    "WAS": ["Jordan Poole", "Kyle Kuzma", "Malcolm Brogdon", "Bilal Coulibaly", "Alex Sarr"]
-}
-
-# ==========================================
-# --- OFFICIAL DYNAMIC GAME SCHEDULES ---
-# ==========================================
-OFFICIAL_SCHEDULES = {
-    date(2026, 11, 2): [("OKC", "CLE"), ("DET", "CHA"), ("BOS", "HOU"), ("UTA", "SAS"), ("MIA", "LAL"), ("CHI", "PHI")],
-    date(2026, 11, 3): [], 
-    date(2026, 11, 4): [("PHI", "DET"), ("ATL", "WAS"), ("MIL", "BOS"), ("CHA", "BKN"), ("CHI", "NYK"), ("CLE", "OKC"), ("IND", "MEM"), ("UTA", "NOP"), ("MIN", "HOU"), ("TOR", "DEN"), ("POR", "PHX"), ("DAL", "SAS"), ("LAL", "SAC"), ("MIA", "LAC")],
-    date(2026, 11, 5): [("OKC", "GSW"), ("BOS", "DEN"), ("LAL", "NYK"), ("MIA", "DAL")]
-}
 
 def odds_to_prob(odds):
-    return (100.0 / (odds + 100.0)) if odds > 0 else (abs(odds) / (abs(odds) + 100.0))
+  return (
+      (100.0 / (odds + 100.0))
+      if odds > 0
+      else (abs(odds) / (abs(odds) + 100.0))
+  )
 
-def prob_to_stars(prob):
-    if prob >= 0.75:
-        return "⭐⭐⭐⭐⭐ (75%+ Elite Lock)"
-    elif prob >= 0.70:
-        return "⭐⭐⭐⭐ (70%+ Strong Play)"
-    elif prob >= 0.65:
-        return "⭐⭐⭐ (65%+ Solid Value)"
-    elif prob >= 0.60:
-        return "⭐⭐ (60%+ Lean Edge)"
-    else:
-        return "⭐ (<60% Marginal)"
+
+def norm_cdf(x):
+  return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def compute_sigmoid_weights(proj_usage, unassisted_fg_share):
+  w_def = (
+      0.40
+      + (0.40 / (1.0 + math.exp(-0.35 * (proj_usage - 21.5))))
+      + (0.10 * unassisted_fg_share)
+  )
+  w_def = max(0.35, min(0.92, w_def))
+  w_sit = 1.0 - w_def
+  return round(w_def, 3), round(w_sit, 3)
+
+
+def compute_spatial_efficiency_and_redirect(
+    def_match_scalar,
+    sit_split_scalar,
+    w_def,
+    w_sit,
+    opp_rim_suppression=0.0,
+    stat_type="Points",
+    anchor_off_share=0.25,
+):
+  adj_def_scalar = def_match_scalar * (1.0 + (0.04 * anchor_off_share))
+  composite_multiplier = (w_def * adj_def_scalar) + (w_sit * sit_split_scalar)
+  redirect_note = "Standard spatial profile"
+  if opp_rim_suppression >= 0.12:
+    if stat_type == "Points":
+      composite_multiplier *= 1.0 - (0.35 * opp_rim_suppression)
+      redirect_note = "Rim Redirect Active"
+    elif stat_type == "Assists":
+      composite_multiplier *= 1.0 + (0.45 * opp_rim_suppression)
+      redirect_note = "Kick-Out Assist Boost"
+  return round(composite_multiplier, 4), redirect_note
+
+
+def compute_dynamic_margin_volatility(
+    spread, proj_pace, comb_3par, coach_mult=1.0, is_underdog=False
+):
+  sigma_game = 12.5 * math.sqrt(proj_pace / 99.5) * (
+      1.0 + 0.45 * (comb_3par - 0.39)
+  )
+  raw_p_blowout = norm_cdf((abs(spread) - 16.5) / sigma_game)
+  gamma = 1.15 if is_underdog else 0.85
+  adj_p_blowout = max(0.02, min(0.65, raw_p_blowout * coach_mult * gamma))
+  return round(sigma_game, 2), round(adj_p_blowout, 3)
+
+
+def simulate_bimodal_prop_probability(
+    target_line,
+    rate_per_min,
+    min_comp,
+    min_blowout,
+    p_blowout,
+    composite_mult=1.0,
+):
+  adj_rate = rate_per_min * composite_mult
+  mu_comp = adj_rate * min_comp
+  mu_blowout = adj_rate * min_blowout
+
+  sd_comp = max(1.2, math.sqrt(mu_comp * 1.35))
+  sd_blowout = max(1.0, math.sqrt(mu_blowout * 1.30))
+
+  p_over_comp = 1.0 - norm_cdf((target_line - mu_comp) / sd_comp)
+  p_over_blowout = 1.0 - norm_cdf((target_line - mu_blowout) / sd_blowout)
+
+  p_bimodal = ((1.0 - p_blowout) * p_over_comp) + (
+      p_blowout * p_over_blowout
+  )
+  p_bimodal = max(0.03, min(0.96, p_bimodal))
+  return (
+      round(p_bimodal, 4),
+      round(p_over_comp, 4),
+      round(p_over_blowout, 4),
+      round(mu_comp, 1),
+      round(mu_blowout, 1),
+  )
+
 
 def generate_multibook_alt_ladders(base_line, base_odds, stat_type, book_name):
-    book_multipliers = {"DraftKings": 1.00, "FanDuel": 0.98, "BetMGM": 1.03, "Caesars": 1.05, "Bovada": 0.95}
-    m = book_multipliers.get(book_name, 1.00)
-    
-    if stat_type == 'Points':
-        rungs = [-6.0, -3.0, 0.0, +3.0, +6.0, +9.5, +14.5]
-        base_juices = [-520, -270, base_odds, +120, +235, +440, +1050]
-    elif stat_type == 'Rebounds':
-        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
-        base_juices = [-460, -230, base_odds, +135, +300, +680]
-    elif stat_type == 'Assists':
-        rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
-        base_juices = [-490, -240, base_odds, +145, +330, +720]
-    else: 
-        rungs = [-8.0, -4.0, 0.0, +5.0, +10.0, +15.0]
-        base_juices = [-510, -255, base_odds, +130, +275, +590]
-        
-    alt_market = {}
-    for offset, juice in zip(rungs, base_juices):
-        rung_line = max(0.5, round((base_line + offset) * 2) / 2)
-        adjusted_juice = int(round(juice * (2.0 - m))) if juice > 0 else int(round(juice * m))
-        alt_market[rung_line] = adjusted_juice
-    return alt_market
+  book_multipliers = {
+      "DraftKings": 1.00,
+      "FanDuel": 0.98,
+      "BetMGM": 1.03,
+      "Caesars": 1.05,
+      "Bovada": 0.95,
+      "Novig": 1.00,
+      "Pinnacle": 1.00,
+  }
+  m = book_multipliers.get(book_name, 1.00)
 
-def calculate_alt_parlay_metrics(items):
-    if not items:
-        return "+0", 0.0
-    decimal_product = 1.0
-    compounded_prob = 1.0
-    for base_line, chosen_alt_line, base_prob, alt_odds in items:
-        line_diff = chosen_alt_line - base_line
-        adjusted_prob = max(0.05, min(0.98, base_prob - (line_diff * 0.045)))
-        compounded_prob *= adjusted_prob
-        dec = ((alt_odds / 100.0) + 1.0) if alt_odds > 0 else ((100.0 / abs(alt_odds)) + 1.0)
-        decimal_product *= dec
-    if decimal_product >= 2.0:
-        american = round((decimal_product - 1.0) * 100)
-        american_str = f"+{american}" if american > 0 else "+100"
+  if stat_type == "Points":
+    rungs = [-6.0, -3.0, 0.0, +3.0, +6.0, +9.5, +14.5]
+    base_juices = [-520, -270, base_odds, +120, +235, +440, +1050]
+  elif stat_type == "Rebounds":
+    rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+    base_juices = [-460, -230, base_odds, +135, +300, +680]
+  elif stat_type == "Assists":
+    rungs = [-3.0, -1.5, 0.0, +2.0, +4.0, +6.0]
+    base_juices = [-490, -240, base_odds, +145, +330, +720]
+  else:
+    rungs = [-8.0, -4.0, 0.0, +5.0, +10.0, +15.0]
+    base_juices = [-510, -255, base_odds, +130, +275, +590]
+
+  alt_market = {}
+  for offset, juice in zip(rungs, base_juices):
+    rung_line = max(0.5, round((base_line + offset) * 2) / 2)
+    if juice > 0:
+      adjusted_juice = int(round(juice * (2.0 - m)))
     else:
-        american = round(-100.0 / (decimal_product - 1.0))
-        american_str = str(american)
-    return american_str, compounded_prob * 100.0
+      adjusted_juice = int(round(juice * m))
+    alt_market[rung_line] = adjusted_juice
+  return alt_market
 
-# ==========================================
-# --- 5-LENS EVALUATION PIPELINE (v8 + JSON EPM) ---
-# ==========================================
-def evaluate_through_5_lenses(player, team, opponent, stat_type, base_val, target_date, epm_config):
-    teams_data = epm_config.get("teams", {})
-    team_metrics = teams_data.get(team, {"off_epm": 2.0, "def_epm": 0.0, "home_net_l10": 3.0})
-    opp_metrics = teams_data.get(opponent, {"off_epm": 2.0, "def_epm": 0.0, "road_net_l10": 1.0})
-    
-    seed_val = abs(hash(player + stat_type + str(target_date))) % 100
-    base_prob = 0.55 + (seed_val / 330.0)
-    
-    epm_boost = (team_metrics.get("off_epm", 2.0) - opp_metrics.get("def_epm", 0.0)) * 0.015
-    split_boost = (team_metrics.get("home_net_l10", 3.0) - opp_metrics.get("road_net_l10", 1.0)) * 0.008
-    
-    calculated_prob = round(max(0.51, min(0.93, base_prob + epm_boost + split_boost)), 2)
-    
-    if calculated_prob < 0.60:
-        return None 
-        
-    lens_summary = "### 🔬 JSON EPM & 5-Lens Breakdown for " + player + " (" + team + " vs " + opponent + ")\n" \
-                   "1. **🩹 Lens 1 (Fatigue & On/Off Split):** Roster verified. Active rotation status confirmed.\n" \
-                   "2. **📊 Lens 2 (Stats & JSON EPM):** Team Off-EPM (" + str(team_metrics.get('off_epm')) + ") vs Opp Def-EPM (" + str(opp_metrics.get('def_epm')) + ") yields positive efficiency.\n" \
-                   "3. **📉 Lens 3 (Location Net Rating Splits):** Home Net L10 (" + str(team_metrics.get('home_net_l10')) + ") vs Road Net L10 (" + str(opp_metrics.get('road_net_l10')) + ") applied.\n" \
-                   "4. **😈 Lens 4 (Cannibalization & Blowout Risk):** Guardrails active. No negative positional overlap flagged.\n" \
-                   "5. **🪙 Lens 5 (Sharp Vig & CLV Audit):** True probability " + str(calculated_prob * 100) + "% clears market break-even."
-    
-    return {
-        "prob": calculated_prob,
-        "star_rating": prob_to_stars(calculated_prob),
-        "tier": "🟢 ELITE EPM STRONG PLAY" if calculated_prob >= 0.70 else "🟡 EPM APPROVED TIER",
-        "summary": lens_summary
-    }
 
-@st.cache_data(ttl=3600)
-def get_slate_dataframe(target_date, book_name, epm_config_json_str):
-    epm_config = json.loads(epm_config_json_str)
-    default_games = [("LAL", "GSW"), ("BOS", "NYK"), ("MIA", "DEN"), ("DAL", "PHX")]
-    games = OFFICIAL_SCHEDULES.get(target_date, default_games)
-    if not games:
-        return pd.DataFrame()
-        
-    variance_map = {"DraftKings": 0, "FanDuel": -2, "BetMGM": +3, "Caesars": +5}
-    v = variance_map.get(book_name, 0)
-    
-    generated_rows = []
-    marquee_scorers = ["Shai Gilgeous-Alexander", "Luka Doncic", "Nikola Jokic", "Giannis Antetokounmpo", "Kevin Durant", "Jayson Tatum", "Cade Cunningham", "Tyrese Maxey", "Donovan Mitchell", "Victor Wembanyama", "Anthony Edwards", "Jalen Brunson"]
-    marquee_rebounders = ["Nikola Jokic", "Domantas Sabonis", "Rudy Gobert", "Anthony Davis", "Victor Wembanyama"]
-    
-    for away_team, home_team in games:
-        matchup_str = away_team + " @ " + home_team
-        for team in [away_team, home_team]:
-            roster = VERIFIED_ROSTERS.get(team, [])
-            for player in roster:
-                if player in ACTIVE_INJURIES and ACTIVE_INJURIES[player]["status"] == "OUT":
-                    continue
-                    
-                opponent = home_team if team == away_team else away_team
-                
-                for stat in ["Points", "Rebounds"]:
-                    base_val = (27.5 if player in marquee_scorers else 22.5) if stat == "Points" else (9.5 if player in marquee_rebounders else 6.5)
-                    
-                    lens_eval = evaluate_through_5_lenses(player, team, opponent, stat, base_val, target_date, epm_config)
-                    if lens_eval is None:
-                        continue 
-                        
-                    odds_val = -110 + (hash(player + stat) % 15) + v
-                    
-                    generated_rows.append({
-                        "matchup": matchup_str,
-                        "player": player,
-                        "team": team,
-                        "opponent": opponent,
-                        "stat_type": stat,
-                        "live_line": base_val,
-                        "odds": odds_val,
-                        "prob": lens_eval["prob"],
-                        "star_rating": lens_eval["star_rating"],
-                        "tier": lens_eval["tier"],
-                        "summary": lens_eval["summary"]
-                    })
-
-    if not generated_rows:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(generated_rows)
-    df['prop_line'] = 'O/U ' + df['live_line'].astype(str)
-    df['implied_prob'] = df['odds'].apply(odds_to_prob)
-    df['edge'] = df['prob'] - df['implied_prob']
-    df['mispriced_flag'] = np.where(df['edge'] >= 0.08, '💎 MISPRICED VALUE', 'STANDARD MARKET')
-    df['alt_options'] = [generate_multibook_alt_ladders(row['live_line'], row['odds'], row['stat_type'], book_name) for _, row in df.iterrows()]
-    return df
-
-@st.cache_data
-def get_verified_ledger():
-    return pd.DataFrame([
-        {"Date": date(2026, 10, 28), "Player": "Shai Gilgeous-Alexander", "Team": "OKC", "Prop": "Points OVER 30.5", "Closing Odds": -110, "Model Prob": "73.0%", "Rating": "⭐⭐⭐⭐⭐", "Actual Box Score": 32, "Result": "🟢 WON", "Units PnL": 0.91, "Brier Error": 0.0729},
-        {"Date": date(2026, 10, 30), "Player": "Tyrese Maxey", "Team": "PHI", "Prop": "Points OVER 28.5", "Closing Odds": -110, "Model Prob": "70.0%", "Rating": "⭐⭐⭐⭐", "Actual Box Score": 27, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.4900},
-        {"Date": date(2026, 10, 31), "Player": "Domantas Sabonis", "Team": "SAC", "Prop": "Rebounds OVER 13.5", "Closing Odds": -115, "Model Prob": "72.0%", "Rating": "⭐⭐⭐⭐⭐", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.87, "Brier Error": 0.0784},
-        {"Date": date(2026, 11, 2), "Player": "Coby White", "Team": "CHI", "Prop": "Points OVER 11.5", "Closing Odds": -125, "Model Prob": "61.0%", "Rating": "⭐⭐", "Actual Box Score": 7, "Result": "🔴 LOST", "Units PnL": -1.00, "Brier Error": 0.3721},
-        {"Date": date(2026, 11, 2), "Player": "Victor Wembanyama", "Team": "SAS", "Prop": "Rebounds OVER 11.5", "Closing Odds": -122, "Model Prob": "67.0%", "Rating": "⭐⭐⭐⭐", "Actual Box Score": 14, "Result": "🟢 WON", "Units PnL": 0.82, "Brier Error": 0.1089}
-    ])
-
-# ==========================================
-# --- SIDEBAR CONTROLS & JSON UPLOADER ---
-# ==========================================
-st.sidebar.header("⚙️ Engine Parameters")
-today_real = datetime.now().date()
-selected_date = st.sidebar.date_input("Select Slate Date", today_real)
-selected_book = st.sidebar.selectbox("Bookmaker", ["DraftKings", "FanDuel", "BetMGM", "Caesars"])
-min_prob = st.sidebar.slider("Min Probability Threshold", 0.60, 0.85, 0.65, 0.01)
-
-st.sidebar.divider()
-st.sidebar.subheader("📂 Custom Team EPM JSON Loader")
-uploaded_json = st.sidebar.file_uploader("Upload team_epm_config.json", type=["json"])
-
-active_epm_config = DEFAULT_TEAM_EPM_JSON
-if uploaded_json is not None:
-    try:
-        custom_data = json.load(uploaded_json)
-        if isinstance(custom_data, dict) and "teams" in custom_data:
-            active_epm_config = custom_data
-            st.sidebar.success("✅ Custom JSON EPM loaded successfully!")
-        else:
-            st.sidebar.error("❌ Invalid JSON format: missing 'teams' root key.")
-    except Exception as e:
-        st.sidebar.error(f"❌ Error parsing JSON: {e}")
-
-config_json_string = json.dumps(active_epm_config)
-
-show_elite_only = st.sidebar.checkbox("⭐ Show 4★ and 5★ Elite Plays Only", value=True)
-show_mispriced_only = st.sidebar.checkbox("Highlight 💎 Mispriced Value Only", value=False)
-
-df = get_slate_dataframe(selected_date, selected_book, config_json_string)
-ledger_df = get_verified_ledger()
-
-st.title("🏀 AlphaProp Edge Finder+ (v8 Master Edition)")
-st.caption("Active Date: **" + selected_date.strftime('%B %d, %Y') + "** | 📂 Config Source: **" + ('Custom Uploaded JSON' if uploaded_json else 'Default EPM JSON') + "**")
-
-# ==========================================
-# --- ALL 9 TABS ---
-# ==========================================
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
-    "⭐ Recommendations", 
-    "📋 Slate Board", 
-    "🏟️ Matchups", 
-    "🤖 Parlay Center",
-    "🎟️ Ladder Builder",
-    "🔬 5-Lens Prop Auditor",
-    "📂 JSON EPM Config",
-    "🚨 Injury Audit",
-    "📊 Win/Loss Ledger"
-])
-
-with tab1:
-    st.subheader("🎯 5-Lens Audited Recommendations (" + selected_book + ")")
-    if df.empty:
-        st.warning("⚠️ **No Games or Qualifying EPM Plays Scheduled on " + str(selected_date) + "**.")
-    else:
-        rec_df = df[df['prob'] >= min_prob]
-        if show_elite_only:
-            rec_df = rec_df[rec_df['prob'] >= 0.70]
-        if show_mispriced_only:
-            rec_df = rec_df[rec_df['mispriced_flag'] == '💎 MISPRICED VALUE']
-        
-        st.info("Audited through JSON EPM & 5 lenses: Found **" + str(len(rec_df)) + " elite-quality props** meeting your criteria.")
-        
-        if rec_df.empty:
-            st.info("No props meet the current threshold.")
-        else:
-            for _, row in rec_df.iterrows():
-                c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
-                c1.write("**" + row['player'] + " (" + row['team'] + ")**\nMatchup: *" + row['matchup'] + "*")
-                c2.write("🎯 **Prop:** " + row['stat_type'] + " (" + row['prop_line'] + ")\nOdds: **" + str(row['odds']) + "**")
-                c3.metric("Model Win Prob", f"{row['prob']*100:.1f}%", delta=f"+{row['edge']*100:.1f}% Edge")
-                c4.write("⭐ **Rating:**\n" + row['star_rating'])
-                st.divider()
-
-with tab2:
-    st.subheader("📋 Complete Slate Board (" + selected_book + ")")
-    if df.empty:
-        st.warning("No props board available for this date.")
-    else:
-        search_q = st.text_input("Search player name or team:", "")
-        board = df.copy()
-        if search_q:
-            board = board[board['player'].str.contains(search_q, case=False) | board['team'].str.contains(search_q, case=False)]
-        if show_elite_only:
-            board = board[board['prob'] >= 0.70]
-        if show_mispriced_only:
-            board = board[board['mispriced_flag'] == '💎 MISPRICED VALUE']
-            
-        st.dataframe(board[['matchup', 'player', 'team', 'stat_type', 'prop_line', 'odds', 'star_rating', 'mispriced_flag']], use_container_width=True)
-        csv_data = board.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Export Board to CSV", data=csv_data, file_name="alphaprop_slate_" + str(selected_date) + ".csv", mime="text/csv")
-
-with tab3:
-    st.subheader("🏟️ Game-by-Game Matchup Inspector")
-    if df.empty:
-        st.info("No matchups today.")
-    else:
-        sel_game = st.selectbox("Select Matchup:", ['All Games'] + list(df['matchup'].unique()))
-        m_df = df if sel_game == 'All Games' else df[df['matchup'] == sel_game]
-        if show_elite_only:
-            m_df = m_df[m_df['prob'] >= 0.70]
-        st.dataframe(m_df[['player', 'team', 'stat_type', 'prop_line', 'odds', 'star_rating']], use_container_width=True)
-
-with tab4:
-    st.subheader("🤖 Multi-Model Automated Parlay Center")
-    model_choice = st.selectbox("Select SGP Strategy:", [
-        "🛡️ Model 1: High-Floor Misprice SGP (2-Leg Attack)",
-        "⚡ Model 2: EV Correlated Ticket (+EV Value Accumulator)",
-        "🚀 Model 3: Moonshot Ceiling Escalator (+2000 Long-Shot)"
-    ])
-    if "Model 1" in model_choice:
-        st.info("🛡️ **High-Floor Misprice SGP (" + selected_book + "):** Audited via JSON EPM engine.")
-        st.markdown("- **Cade Cunningham (DET):** Over 24.5 Points ⭐⭐⭐⭐⭐\n- **Victor Wembanyama (SAS):** Over 11.5 Rebounds ⭐⭐⭐⭐⭐")
-        st.success("🎯 **Target Odds:** +275 | **True Win Prob:** ~48.5%")
-    elif "Model 2" in model_choice:
-        st.info("⚡ **EV Correlated Ticket (" + selected_book + "):** Audited via JSON EPM engine.")
-        st.markdown("- **Shai Gilgeous-Alexander (OKC):** Over 31.5 Points ⭐⭐⭐⭐⭐\n- **Tyrese Maxey (PHI):** Over 28.5 Points ⭐⭐⭐⭐⭐")
-        st.success("🎯 **Target Odds:** +565 | **True Win Prob:** ~39.2%")
-    else:
-        st.info("🚀 **Moonshot Ceiling Escalator (" + selected_book + "):** Audited via JSON EPM engine.")
-        st.markdown("- **Victor Wembanyama:** 16+ Rebounds Alt Ladder ⭐⭐⭐⭐⭐")
-        st.success("🎯 **Target Odds:** +2150 | **True Win Prob:** ~7.5%")
-
-with tab5:
-    st.subheader("🎟️ Multi-Book Alt Ladder Builder (" + selected_book + ")")
-    if df.empty:
-        st.info("No props available for laddering on this date.")
-    else:
-        ladder_df = df[df['prob'] >= 0.70] if show_elite_only else df
-        sel_players = st.multiselect("Select players for alt parlay slip:", options=ladder_df['player'].tolist(), default=ladder_df['player'].tolist()[:2])
-        if sel_players:
-            alt_items = []
-            slip_details = []
-            for i, p_name in enumerate(sel_players):
-                p_row = df[df['player'] == p_name].iloc[0]
-                alt_dict = p_row['alt_options']
-                c_a, c_b = st.columns([2, 3])
-                c_a.write("**" + p_row['player'] + " (" + p_row['team'] + ")** — " + p_row['star_rating'] + "\n*" + p_row['stat_type'] + "*")
-                choices = [str(line) + " Alt (Odds: " + str(odds) + ")" for line, odds in alt_dict.items()]
-                chosen = c_b.selectbox("Select Rung (" + p_name + ")", options=choices, index=2, key="rung_" + p_name + "_" + str(i))
-                cline = float(chosen.split()[0])
-                codds = int(chosen.split("Odds: ")[1].replace(")", ""))
-                alt_items.append((float(p_row['live_line']), cline, float(p_row['prob']), int(codds)))
-                slip_details.append("- **" + p_row['player'] + " (" + p_row['team'] + ")**: " + p_row['stat_type'] + " " + str(cline) + "+ @ **" + str(codds) + "**")
-                st.divider()
-            
-            comp_odds, comp_prob = calculate_alt_parlay_metrics(alt_items)
-            st.markdown("### 🎯 Compiled Slip Metrics")
-            for det in slip_details:
-                st.write(det)
-            m1, m2 = st.columns(2)
-            m1.metric("🎯 Ladder Combined Odds", comp_odds)
-            m2.metric("📈 Compounded Cover Probability", f"{comp_prob:.1f}%")
-
-with tab6:
-    st.subheader("🔬 5-Lens Prop Auditor & Deep-Dive Engine")
-    if df.empty:
-        st.info("No active slate for audit on this date.")
-    else:
-        audit_pool = df[df['prob'] >= 0.70]['player'].tolist() if show_elite_only else df['player'].tolist()
-        if not audit_pool:
-            st.warning("No players match the elite filter.")
-        else:
-            aud_player = st.selectbox("Select Player to Audit:", options=audit_pool, key="audit_player_select")
-            arow = df[df['player'] == aud_player].iloc[0]
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Selected Prop", arow['player'] + " (" + arow['team'] + ")")
-            c2.metric("Baseline Line", arow['stat_type'] + " " + arow['prop_line'])
-            c3.metric("Confidence", arow['star_rating'])
-            st.divider()
-            st.markdown(arow['summary'])
-
-with tab7:
-    st.subheader("📂 Active Team EPM JSON Viewer & Downloader")
-    st.markdown("Inspect the active JSON configuration currently driving team offensive/defensive EPM multipliers and location splits:")
-    st.json(active_epm_config)
-    
-    json_export_str = json.dumps(active_epm_config, indent=4)
-    st.download_button(
-        "📥 Download Active team_epm_config.json",
-        data=json_export_str,
-        file_name="team_epm_config.json",
-        mime="application/json"
+def calculate_bimodal_alt_parlay_metrics(items):
+  if not items:
+    return "+0", 0.0
+  decimal_product = 1.0
+  compounded_prob_product = 1.0
+  for p_row, chosen_alt_line, alt_odds in items:
+    rung_prob, _, _, _, _ = simulate_bimodal_prop_probability(
+        target_line=chosen_alt_line,
+        rate_per_min=p_row["base_rate_per_min"],
+        min_comp=p_row["min_comp"],
+        min_blowout=p_row["min_blowout"],
+        p_blowout=p_row["p_blowout"],
+        composite_mult=p_row["composite_mult"],
     )
+    compounded_prob_product *= rung_prob
+    dec = (
+        ((alt_odds / 100.0) + 1.0)
+        if alt_odds > 0
+        else ((100.0 / abs(alt_odds)) + 1.0)
+    )
+    decimal_product *= dec
 
-with tab8:
-    st.subheader("🚨 Active Injury Exclusion & Lineup Lock Audit (Lens 1)")
-    injury_records = [{"Player": p, "Team": d["team"], "Status": d["status"], "Reason": d["reason"]} for p, d in ACTIVE_INJURIES.items()]
-    st.dataframe(pd.DataFrame(injury_records), use_container_width=True)
-
-with tab9:
-    st.subheader("📊 Historical Daily Picks & Win/Loss Ledger")
-    t_picks = len(ledger_df)
-    t_wins = len(ledger_df[ledger_df["Result"] == "🟢 WON"])
-    net_pnl = ledger_df["Units PnL"].sum()
-    avg_brier = ledger_df["Brier Error"].mean()
-    
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Settled Picks", t_picks)
-    m2.metric("Win Rate", f"{(t_wins/t_picks)*100:.1f}%")
-    m3.metric("Net Units PnL", f"{net_pnl:+.2f} U")
-    m4.metric("Avg Brier Score", f"{avg_brier:.3f}")
-    st.divider()
-    st.dataframe(ledger_df, use_container_width=True)
+  if decimal_product >= 
