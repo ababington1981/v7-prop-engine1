@@ -1,8 +1,17 @@
 from datetime import datetime
+import os
+import sys
+
+# Ensure current directory is in Python path for local & Streamlit Cloud imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+  sys.path.append(current_dir)
+
 import time
 import numpy as np
 import pandas as pd
 import streamlit as st
+
 from utils import (
     fetch_live_nba_player_props,
     load_historical_suggested_picks,
