@@ -1,16 +1,17 @@
-from datetime import datetime
+import streamlit as st
+import pandas as pd
+import numpy as np
+import requests
 import math
 import time
-import numpy as np
-import pandas as pd
-import streamlit as st
+from datetime import datetime
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="AlphaProp Edge Finder+ (v8 Master)",
+    page_title="AlphaProp Edge Finder+ (v8 Master Edition)",
     page_icon="🏀",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
 # --- Polished Deep Slate & Modern Dark Mode Aesthetic ---
@@ -81,25 +82,19 @@ st.markdown(
         }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 # ==========================================
 # --- CORE v8 QUANTITATIVE ENGINE FUNCTIONS ---
 # ==========================================
 
-
 def odds_to_prob(odds):
-  return (
-      (100.0 / (odds + 100.0))
-      if odds > 0
-      else (abs(odds) / (abs(odds) + 100.0))
-  )
-
+    return (100.0 / (odds + 100.0)) if odds > 0 else (abs(odds) / (abs(odds) + 100.0))
 
 def norm_cdf(x):
-  return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
-
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
 
 def compute_sigmoid_weights(proj_usage, unassisted_fg_share):
-  w_def = (
+    w_def = 0.40 + (0.40 / (1.0 + math.exp(-0.35 * (proj_usage - 21.5)))) + (0.10 * unassisted_fg_share)
+    w_def = max(0.35, min(0
