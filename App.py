@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 import sys
 
-# Ensure current directory is in Python path for local & Streamlit Cloud imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
   sys.path.append(current_dir)
@@ -11,13 +10,7 @@ import time
 import numpy as np
 import pandas as pd
 import streamlit as st
-
-from utils import (
-    fetch_live_nba_player_props,
-    load_historical_suggested_picks,
-    odds_to_prob,
-    simulate_bimodal_prop_probability,
-)
+import utils
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -163,8 +156,8 @@ if sync_odds_btn:
       f"API Sync Successful ({st.session_state.sync_timestamp.strftime('%H:%M:%S')})"
   )
 
-raw_df = fetch_live_nba_player_props(api_key_input, selected_bookmaker)
-suggested_picks_df = load_historical_suggested_picks()
+raw_df = utils.fetch_live_nba_player_props(api_key_input, selected_bookmaker)
+suggested_picks_df = utils.load_historical_suggested_picks()
 
 st.sidebar.divider()
 st.sidebar.subheader("🔄 Manual Line Overrides")
@@ -183,7 +176,7 @@ if enable_manual_override:
     )
     if new_line != row["live_line"]:
       df.loc[idx, "live_line"] = new_line
-      p_bi, p_c, p_bl, m_c, m_bl = simulate_bimodal_prop_probability(
+      p_bi, p_c, p_bl, m_c, m_bl = utils.simulate_bimodal_prop_probability(
           new_line,
           row["base_rate_per_min"],
           row["min_comp"],
@@ -196,7 +189,7 @@ if enable_manual_override:
       df.loc[idx, "p_over_blowout"] = p_bl
 
 df["prop_line"] = "O/U " + df["live_line"].astype(str)
-df["implied_prob"] = df["book_odds"].apply(odds_to_prob)
+df["implied_prob"] = df["book_odds"].apply(utils.odds_to_prob)
 df["edge"] = df["true_probability"] - df["implied_prob"]
 df["mispriced_flag"] = np.where(
     (df["edge"] >= 0.08) & (df["true_probability"] >= min_prob),
@@ -415,7 +408,7 @@ with tab6:
         chosen_line = float(chosen_selection.split()[0])
         chosen_odds = int(chosen_selection.split("Odds: ")[1].replace(")", ""))
 
-      rung_bi_prob, _, _, _, _ = simulate_bimodal_prop_probability(
+      rung_bi_prob, _, _, _, _ = utils.simulate_bimodal_prop_probability(
           chosen_line,
           p_row["base_rate_per_min"],
           p_row["min_comp"],
@@ -429,7 +422,7 @@ with tab6:
       )
       st.divider()
 
-    comp_odds, comp_prob = calculate_bimodal_alt_parlay_metrics(alt_items)
+    comp_odds, comp_prob = utils.calculate_bimodal_alt_parlay_metrics(alt_items)
     st.markdown("### 🎯 Compiled Bimodal Ladder Slip Metrics")
     for detail in slip_details:
       st.write(detail)
