@@ -103,13 +103,3 @@ def norm_cdf(x):
 
 def compute_sigmoid_weights(proj_usage, unassisted_fg_share):
   w_def = (
-      0.40
-      + (0.40 / (1.0 + math.exp(-0.35 * (proj_usage - 21.5))))
-      + (0.10 * unassisted_fg_share)
-  )
-  w_def = max(0.35, min(0.92, w_def))
-  w_sit = 1.0 - w_def
-  return round(w_def, 3), round(w_sit, 3)
-
-
-def compute_spatial_efficiency_and_redirect(
