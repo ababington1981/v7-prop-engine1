@@ -209,4 +209,189 @@ def fetch_live_nba_player_props(api_key, book_name):
           "Points",
           "Points",
       ],
-      "live_line": [30.5, 12.5, 
+      "live_line": [30.5, 12.5, 25.5, 19.5, 29.5, 9.5, 28.5, 45.5, 26.5, 24.5],
+      "book_odds": [
+          -110 + v,
+          -125 + v,
+          -110 + v,
+          -110 + v,
+          -115 + v,
+          -110 + v,
+          -115 + v,
+          -115 + v,
+          -110 + v,
+          -115 + v,
+      ],
+      "proj_usage": [32.8, 19.5, 30.4, 25.2, 29.8, 30.5, 34.2, 33.5, 28.6, 29.4],
+      "unassisted_fg": [0.76, 0.42, 0.72, 0.54, 0.64, 0.78, 0.81, 0.68, 0.58, 0.49],
+      "def_match_scalar": [
+          1.08,
+          0.96,
+          1.07,
+          1.09,
+          1.06,
+          1.12,
+          1.08,
+          1.03,
+          1.06,
+          1.09,
+      ],
+      "sit_split_scalar": [1.02, 0.94, 1.04, 1.05, 1.01, 1.03, 1.02, 0.99, 1.03, 1.04],
+      "opp_rim_suppression": [
+          0.08,
+          0.05,
+          0.02,
+          0.00,
+          0.03,
+          0.15,
+          0.00,
+          0.14,
+          0.06,
+          0.00,
+      ],
+      "anchor_off_share": [0.22, 0.35, 0.28, 0.30, 0.25, 0.20, 0.32, 0.24, 0.26, 0.30],
+      "spread": [-2.5, +7.5, -8.5, -10.5, -6.5, +4.5, -5.5, -3.5, -4.5, -9.5],
+      "is_underdog": [False, True, False, False, False, True, False, False, False, False],
+      "proj_pace": [100.5, 99.2, 97.8, 98.5, 102.4, 104.8, 101.2, 99.0, 99.8, 101.5],
+      "comb_3par": [0.41, 0.39, 0.42, 0.38, 0.41, 0.43, 0.42, 0.38, 0.45, 0.40],
+      "coach_mult": [1.25, 1.00, 0.35, 1.00, 0.35, 1.00, 1.00, 1.00, 1.25, 1.10],
+      "min_comp": [36.5, 27.0, 37.5, 35.0, 38.0, 36.0, 37.5, 36.5, 36.0, 33.5],
+      "min_blowout": [28.0, 21.0, 32.5, 27.5, 33.0, 28.5, 29.5, 29.0, 27.5, 25.5],
+      "base_rate_per_min": [0.91, 0.50, 0.74, 0.61, 0.82, 0.30, 0.84, 1.32, 0.79, 0.81],
+      "lens_summary": [
+          "Fully rested, 36.5 min comp floor. Elite paint-touch volume.",
+          "Managed rotation floor (27m comp). Situational road split.",
+          "Thibodeau 0.35x coach multiplier insulates 37.5m floor.",
+          "Stable point-forward role. Transition defense advantage.",
+          "Nurse 0.35x coach multiplier protects 38.0m ceiling.",
+          "Uncontested primary playmaker. Ultra-fast tempo.",
+          "Heliocentric star (34.2% usage). Primary P&R creator.",
+          "Dominant Miami frontcourt usage (33.5%).",
+          "High-usage Boston wing creator (28.6%).",
+          "Rim protection & stretch anchor against UTA interior.",
+      ],
+  })
+
+  w_defs, w_sits, comp_mults, redirect_notes = [], [], [], []
+  sigmas, p_blowouts = [], []
+  true_probs, p_comps, p_blows, mu_comps, mu_blows = [], [], [], [], []
+
+  for _, row in df.iterrows():
+    w_d, w_s = compute_sigmoid_weights(row["proj_usage"], row["unassisted_fg"])
+    c_mult, r_note = compute_spatial_efficiency_and_redirect(
+        row["def_match_scalar"],
+        row["sit_split_scalar"],
+        w_d,
+        w_s,
+        row["opp_rim_suppression"],
+        row["stat_type"],
+        row["anchor_off_share"],
+    )
+    sig, p_b = compute_dynamic_margin_volatility(
+        row["spread"],
+        row["proj_pace"],
+        row["comb_3par"],
+        row["coach_mult"],
+        row["is_underdog"],
+    )
+    p_bi, p_c, p_bl, m_c, m_bl = simulate_bimodal_prop_probability(
+        row["live_line"],
+        row["base_rate_per_min"],
+        row["min_comp"],
+        row["min_blowout"],
+        p_b,
+        c_mult,
+    )
+    w_defs.append(w_d)
+    w_sits.append(w_s)
+    comp_mults.append(c_mult)
+    redirect_notes.append(r_note)
+    sigmas.append(sig)
+    p_blowouts.append(p_b)
+    true_probs.append(p_bi)
+    p_comps.append(p_c)
+    p_blows.append(p_bl)
+    mu_comps.append(m_c)
+    mu_blows.append(m_bl)
+
+  df["w_def"] = w_defs
+  df["w_sit"] = w_sits
+  df["composite_mult"] = comp_mults
+  df["redirect_note"] = redirect_notes
+  df["sigma_game"] = sigmas
+  df["p_blowout"] = p_blowouts
+  df["true_probability"] = true_probs
+  df["p_over_comp"] = p_comps
+  df["p_over_blowout"] = p_blows
+  df["mu_comp"] = mu_comps
+  df["mu_blowout"] = mu_blows
+  df["alt_options"] = [
+      generate_multibook_alt_ladders(
+          row["live_line"], row["book_odds"], row["stat_type"], book_name
+      )
+      for _, row in df.iterrows()
+  ]
+  return df
+
+
+@st.cache_data
+def load_historical_suggested_picks():
+  picks_df = pd.DataFrame({
+      "date": [
+          "2026-10-28",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-10-30",
+          "2026-10-31",
+          "2026-11-01",
+          "2026-11-02",
+      ],
+      "player": [
+          "Shai Gilgeous-Alexander",
+          "Coby White",
+          "Luka Dončić",
+          "Tyrese Maxey",
+          "Domantas Sabonis",
+          "Jaylen Brown",
+          "Giannis Antetokounmpo",
+          "Franz Wagner",
+      ],
+      "team": ["OKC", "CHA", "DAL", "PHI", "SAC", "BOS", "MIA", "ORL"],
+      "stat_type": [
+          "Points",
+          "Points",
+          "Points",
+          "Points",
+          "Rebounds",
+          "Points",
+          "PRA",
+          "Points",
+      ],
+      "recommended_prop": [
+          "Over 30.5",
+          "Over 11.5",
+          "Over 28.5",
+          "Over 26.5",
+          "Over 11.5",
+          "Over 26.5",
+          "Over 45.5",
+          "Over 19.5",
+      ],
+      "book_odds": [-110, -125, -115, -110, -105, -110, -115, -110],
+      "model_prob": [
+          "73.0%",
+          "68.0%",
+          "71.0%",
+          "70.0%",
+          "72.0%",
+          "69.0%",
+          "72.0%",
+          "74.0%",
+      ],
+      "brier_score": [0.073, 0.102, 0.084, 0.490, 0.078, 0.096, 0.078, 0.068],
+      "result": ["WON", "WON", "WON", "LOST", "WON", "WON", "WON", "WON"],
+      "units_pnl": [0.91, 0.80, 0.87, -1.00, 0.95, 0.91, 0.87, 0.91],
+  })
+  picks_df["date"] = pd.to_datetime(picks_df["date"]).dt.date
+  return picks_df
